@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% load static %}
+
+
+{%block content%}
+<form method="post">
+  {% csrf_token %}
+
+  <!-- Your custom error message -->
+  {% if error_message %}
+    <div style="color:red;">
+      <p>{{ error_message }}</p>
+    </div>
+  {% endif %}
+
+  {{ form.username.label_tag }}
+  {{ form.username }}
+
+  {{ form.password.label_tag }}
+  {{ form.password }}
+
+  <button type="submit">Login</button>
+</form>
+
+{%endblock%}
+

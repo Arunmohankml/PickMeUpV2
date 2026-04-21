@@ -1,0 +1,173 @@
+{% extends 'base.html' %}
+
+{% block head %} 
+  <title>Booking</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f8f9fa;
+      margin: 0;
+      padding: 0;
+    }
+
+    .home-container {
+      max-width: 500px;
+      margin: 60px auto;
+      text-align: center;
+      background: white;
+      padding: 40px 30px;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .home-container h1 {
+      font-size: 26px;
+      margin-bottom: 10px;
+    }
+
+    .under-dev {
+      font-size: 15px;
+      color: #ff9900;
+      margin-bottom: 25px;
+    }
+
+    .button-group {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    .button-group button {
+      padding: 12px;
+      font-size: 16px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    .btn-user {
+      background: #fdfbd1;
+      border-radius: 1.5vh;
+      padding: 2vh;
+      box-shadow: 0 5px 10px rgba(0,0,0,0.1);
+      
+    }
+
+    .btn-driver {
+      background: #fff482;
+      border-radius: 1.5vh;
+      padding: 2vh;
+      box-shadow: 0 5px 10px rgba(0,0,0,0.1);
+    }
+
+    .btn-logout {
+      background-color: #dc3545;
+      color: white;
+    }
+     
+    
+    .features {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 3vh;
+      padding: 5vh 5vw;
+    }
+    .feature-box {
+      text-align: center;
+      padding: 2vh;
+      border-radius: 1.5vh;
+      background-color: #fffde7;
+      border: 1px solid #FFD600;
+    }
+    .feature-box h3 {
+      margin-bottom: 1vh;
+    }
+    .how-it-works {
+      background: #fff;
+      padding: 5vh 5vw;
+    }
+    .how-it-works h2 {
+      text-align: center;
+      margin-bottom: 4vh;
+    }
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 4vh;
+      text-align: center;
+    }
+    .step {
+      background: #fdfbd1;
+      border-radius: 1.5vh;
+      padding: 2vh;
+      box-shadow: 0 5px 10px rgba(0,0,0,0.1);
+    }
+  </style>
+{% endblock %}
+
+{% block content %}
+  <div class="home-container">
+    <h1>Welcome to Pick me up!</h1>
+    <p class="under-dev">🚧 This site is currently under development. .</p>
+
+    {% if logged %}
+      <h2>Hi {{ username }}, you are a <strong>{{ role|capfirst }}</strong></h2>
+
+      <form action="{% url 'logout' %}" method="post" style="margin-top: 30px;">
+        {% csrf_token %}
+        <button type="submit" class="btn-logout">Logout</button>
+      </form>
+
+    {% else %}
+      <div class="button-group">
+        <a href="{% url 'register' role='user' %}">
+          <button class="btn-user">Register / Login as User</button>
+        </a>
+
+        <a href="{% url 'register' role='driver' %}">
+          <button class="btn-driver">Register / Login as Driver</button>
+        </a>
+      </div>
+   </div>
+    
+{% endif %}
+  <section class="features">
+    <div class="feature-box">
+      <h3>🚗 Doorstep Pickup</h3>
+      <p>We pick you up from exactly where you are.</p>
+    </div>
+    <div class="feature-box">
+      <h3>📊 Flat Rates</h3>
+      <p>No surge pricing. Transparent government-approved fares.</p>
+    </div>
+    <div class="feature-box">
+      <h3>💬 No Haggling</h3>
+      <p>Set fares remove all confusion before you start your trip.</p>
+    </div>
+    <div class="feature-box">
+      <h3>🛡️ Safety First</h3>
+      <p>Verified drivers and safety tools to keep your trips secure.</p>
+    </div>
+  </section>  
+  <section id="how" class="how-it-works">
+    <h2>How It Works</h2>
+    <div class="steps">
+      <div class="step">
+        <h3>1. Request a Ride</h3>
+        <p>Enter your destination, see fare upfront.</p>
+      </div>
+      <div class="step">
+        <h3>2. Get Picked Up</h3>
+        <p>Driver and auto details are shared with you instantly.</p>
+      </div>
+      <div class="step">
+        <h3>3. Ride Away</h3>
+        <p>Hop in and enjoy a stress-free ride.</p>
+      </div>
+      <div class="step">
+        <h3>4. Payment</h3>
+        <p>Pay using UPI or cash directly to the driver.</p>
+      </div>
+    </div>
+  </section>
+{% endblock %}

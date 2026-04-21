@@ -1,0 +1,485 @@
+<!-- templates/bookingPage.html -->
+{% extends 'base.html' %}
+
+{% block head %}
+ <title>Booking</title>
+ 
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
+ 
+ <style>
+
+.buttons-container {
+  
+  width: 90vw;
+  max-width: 420px;
+  margin: 5vh auto;
+  padding: 3vh 2vw;
+  background-color: white;
+  border: 3px solid #ffe600;
+  border-radius: 2vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+}
+
+.pickup-btn, .book-btn {
+  width: 100%;
+  padding: 1.5vh 0;
+  margin: 1.5vh 0;
+  background-color: #ffe600;
+  color: black;
+  font-size: 1rem;
+  font-weight: bold;
+  border: none;
+  border-radius: 1.5vh;
+  transition: background-color 0.3s;
+}
+
+.pickup-btn:hover, .book-btn:hover {
+  background-color: #ffcc00;
+}
+
+.inputbox {
+  width: 100%;
+  padding: 1.2vh;
+  font-size: 1rem;
+  border: 1.5px solid #ccc;
+  border-radius: 1vh;
+  margin: 1vh 0;
+}
+
+#form-container {
+  width: 100%;
+  text-align: center;
+}
+
+#map-container {
+  display: none;
+  height: 50vh;
+  width: 90vw;
+  max-width: 420px;
+  margin: 3vh auto;
+  border: 2px solid #ffe600;
+  border-radius: 2vh;
+  overflow: hidden;
+}
+#map { width: 100%; height: 100%; }
+#map-distance, #fare-display {
+  font-size: 0.8rem;
+  margin: 1vh auto;
+  text-align: center;
+  font-weight: bold;
+  color: #333;
+  width:15vh;
+  background-color:white;
+  border-radius:2vh;
+  border:2px solid #ffe600;
+  padding:1vh;
+}
+</style>
+   
+{% endblock %}
+
+{% block content %}
+
+  <div class="buttons-container" id="buttons-container">
+    <button id="pickup-btn" class="pickup-btn">Pick up location</button>
+    <button id="drop-btn" class="pickup-btn">Drop location</button>
+    <button id="submit-btn" class="pickup-btn" style="display:none;">Submit</button>
+    <button id="submit-btn2" class="pickup-btn" style="display:none;">Submit</button>
+
+    <div id="form-container">
+<form id="booking-form" style="width: 100%; text-align: center;">
+        <label for="stand">Select auto stand:</label>
+        <select id="stand" name="stand" class="inputbox">
+          <option value="anchamile">Anchamile</option>
+          <option value="wdr" selected>Wandoor</option>
+          <option value="ppm">Pookkottumpaadam</option>
+        </select>
+      <input type="text" id="full-name" name="full_name" class="inputbox" value="{{ username }}" readonly>
+        <input type="text" id="ph-num" name="ph_num" class="inputbox" placeholder="Enter your phone number">
+      </form>
+    </div>
+
+    <button id="book-btn" class="book-btn" style="display:none;">Book taxi</button>
+  </div>
+
+  <div id="map-container">
+    <div id="map">
+<button onclick="locateUser()" style="position: absolute; top: 2vh; right: 2vh; z-index: 1000; padding: 0.5vh 1.5vh; border-radius: 1vh; background: #0099ff; color: white; border: none;">🔵</button>
+     </div>
+  </div>
+  <div id="coords-display" style="display:none;"></div>
+  <p id="map-distance">Distance:0</p>
+  <p id="fare-display">Fare:0</p>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+<script>
+  const pickupBtn = document.getElementById('pickup-btn');
+  const dropBtn = document.getElementById('drop-btn');
+  const mapBox = document.getElementById('map-container');
+  const subBtn = document.getElementById('submit-btn');
+  const subBtn2 = document.getElementById('submit-btn2');
+  const btnContainer = document.getElementById('buttons-container');
+  const bookBtn = document.getElementById('book-btn');
+  const formContainer = document.getElementById('form-container');
+  const coordsDisplay = document.getElementById("coords-display");
+  
+  
+let pickupLatLng = null;
+let dropLatLng = null;
+let routePolyline = null;
+let currMode=null;
+let selectedLatLng = null;
+let Distance = 0;
+let distance =0;
+let fare = 0;
+//CREATING MAP ELEMENT
+
+ const map = L.map('map').setView([11.246206, 76.288803], 18); 
+ 
+ //LOADING IMAGES/TILES
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 20,
+    attribution: '&copy; OpenStreetMap contributors'
+  }).addTo(map);
+
+  L.Control.geocoder({ defaultMarkGeocode: false })
+    .on('markgeocode', function (e) {
+      map.setView(e.geocode.center, 15);
+      draggableMarker.setLatLng(e.geocode.center);
+      updateCoordsDisplay(e.geocode.center);
+      pickupLatLng = e.geocode.center;
+    }).addTo(map);
+
+
+//auto stands
+let Astands = [
+  { name: "Anchamile", coord: [11.2460, 76.2887] },
+  { name: "Pookkottumpadam", coord: [11.2442, 76.2989] } // example
+];
+
+Astands.forEach(stand => {
+  let circle = L.circle(stand.coord, {
+    color: 'green',
+    fillColor: '#08ff1f',
+    fillOpacity: 0.5,
+    radius: 6
+  }).addTo(map);
+
+  circle.bindPopup(stand.name).openPopup(); // Shows name in popup
+});
+
+//---------------
+ // Create a draggable marker
+const draggableMarker = L.marker([11.246206, 76.288803], {
+  draggable: true
+}).addTo(map);
+
+// Set default icon globally
+L.Marker.prototype.options.icon = L.icon({
+  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+  shadowSize: [41, 41]
+});
+
+map.on('click', function(e) {
+  draggableMarker.setLatLng(e.latlng);
+
+  if (currMode === 'pickup') {
+    pickupLatLng = e.latlng;
+    
+  } else if (currMode === 'drop') {
+    dropLatLng = e.latlng;
+    
+    
+  }
+
+  drawPath(pickupLatLng, dropLatLng);
+});
+
+// Also update when marker is dragged
+draggableMarker.on('dragend', function (e) {
+  const pos = e.target.getLatLng();
+
+  if (currMode === 'pickup') {
+    pickupLatLng = pos;
+    
+  } else if (currMode === 'drop') {
+    dropLatLng = pos;
+    
+  }
+
+  drawPath(pickupLatLng, dropLatLng);
+});
+
+
+
+//drawing road path
+function drawPath(from, to) {
+  if (!from || !to) return;
+
+  const fromLat = from.lat || from[0];
+  const fromLng = from.lng || from[1];
+  const toLat = to.lat || to[0];
+  const toLng = to.lng || to[1];
+
+  fetch(`https://router.project-osrm.org/route/v1/driving/${fromLng},${fromLat};${toLng},${toLat}?overview=full&geometries=geojson`)
+    .then(res => res.json())
+    .then(data => {
+      if (!data.routes || !data.routes[0]) {
+        notify("No route found.");
+        return;
+      }
+      
+      
+      
+      
+    const route = data.routes[0];  // full route object
+    const routeCoords = route.geometry.coordinates;
+    const latlngs = routeCoords.map(c => [c[1], c[0]]);
+
+      if (routePolyline) map.removeLayer(routePolyline);
+
+      routePolyline = L.polyline(latlngs, { color: 'green' }).addTo(map);
+      map.fitBounds(routePolyline.getBounds(), { padding: [40, 40] });
+      
+      Distance=(route.distance/1000).toFixed(2);
+      
+      
+      let perKm=22.5;
+      let minFare=30;
+      if (Distance >= 1.333){
+        fare=Distance*perKm;
+      }else{
+          fare=minFare;
+      }
+     
+      const fareDisplay=document.getElementById('fare-display');
+      fareDisplay.textContent="Fare: ₹"+fare;
+      
+      const distDisplay=document.getElementById('map-distance');
+      distDisplay.textContent="Distance: " +Distance+ "Km";
+    })
+    .catch(err => {
+      notify("Failed to draw route.");
+      console.error(err);
+    });
+}
+  // Ask for current location and navigate to that area
+let myLocation = null;
+
+window.onload = function() {
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      myLocation = [pos.coords.latitude, pos.coords.longitude];
+    },
+   (err) => {
+  if (err.code === 1) {
+    notify("Location permission denied. Please allow it in your browser settings.");
+  } else if (err.code === 2) {
+    notify("Location information is unavailable. Try turning on location services.");
+  } else if (err.code === 3) {
+    notify("Location request timed out. Please try again.");
+  } else {
+    notify("An unknown location error occurred.");
+  }
+},
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+  );
+};
+
+  
+  
+  
+  
+  
+
+pickupBtn.addEventListener('click', () => {
+  currMode= "pickup";
+    const showing = mapBox.style.display === 'block';
+    mapBox.style.display = showing ? 'none' : 'block';
+    pickupBtn.textContent = showing ? 'Pick up location' : 'Close';
+    subBtn.style.display = showing ? 'none' : 'block';
+    dropBtn.style.display = showing ? 'block' : 'none';
+    bookBtn.style.display = showing ? 'block' : 'none';
+    formContainer.style.display = showing ? 'block' : 'none';
+    btnContainer.style.flexDirection = showing ? 'column' : 'row';
+    if (!showing) setTimeout(() => map.invalidateSize(), 200);
+  });
+  
+  subBtn.addEventListener('click', () => {
+    mapBox.style.display = 'none';
+    subBtn.style.display = 'none';
+    pickupBtn.style.display = 'block';
+    dropBtn.style.display = 'block';
+    btnContainer.style.flexDirection = "column";
+    formContainer.style.display = 'block';
+    bookBtn.style.display = 'block';
+    
+    
+   
+    pickupBtn.textContent = pickupLatLng
+      ? `📍 ${pickupLatLng.lat.toFixed(4)}, ${pickupLatLng.lng.toFixed(4)}`
+      : 'Pick up location';
+  });
+
+dropBtn.addEventListener('click', () => {
+  currMode="drop";
+    const showing = mapBox.style.display === 'block';
+    mapBox.style.display = showing ? 'none' : 'block';
+    dropBtn.textContent = showing ? 'Drop location' : 'Close';
+    pickupBtn.style.display = showing ? 'block' : 'none';
+    subBtn2.style.display = showing ? 'none' : 'block';
+    bookBtn.style.display = showing ? 'block' : 'none';
+    formContainer.style.display = showing ? 'block' : 'none';
+    btnContainer.style.flexDirection = showing ? 'column' : 'row';
+    if (!showing) setTimeout(() => map.invalidateSize(), 200);
+  });
+
+subBtn2.addEventListener('click', () => {
+  if (!pickupLatLng){
+    notify('Select a pickup location first');
+  }
+    mapBox.style.display = 'none';
+    subBtn2.style.display = 'none';
+    dropBtn.style.display = 'block';
+    pickupBtn.style.display = 'block';
+    btnContainer.style.flexDirection = "column";
+    formContainer.style.display = 'block';
+    bookBtn.style.display = 'block';
+    refreshRoutePath();
+    
+    dropBtn.textContent = dropLatLng
+      ? `📍 ${dropLatLng.lat.toFixed(4)}, ${dropLatLng.lng.toFixed(4)}`
+      : 'Drop location'; 
+ 
+});
+
+  const fName = document.getElementById("full-name");
+  const phNum = document.getElementById("ph-num");
+
+  bookBtn.addEventListener('click', () => {
+    let valid = true;
+
+    if (fName.value.trim() === "") {
+      fName.placeholder = "Enter your name (required)";
+      fName.style.borderColor = "red";
+      valid = false;
+    } else {
+      fName.style.borderColor = "";
+    }
+
+    if (phNum.value.trim() === "") {
+      phNum.placeholder = "Enter your phone number (required)";
+      phNum.style.borderColor = "red";
+      valid = false;
+    } else {
+      phNum.style.borderColor = "";
+    }
+
+    const pickupText = pickupBtn.textContent.trim();
+    const dropText = dropBtn.textContent.trim();
+    if (pickupText === "Pick up location" || dropText === "Drop location") {
+      valid = false;
+      bookBtn.textContent = "Submit (choose locations)";
+      bookBtn.style.color = "red";
+    } else {
+      bookBtn.textContent = "Book taxi";
+      bookBtn.style.color = "white";
+    }
+
+    if (valid) {
+      const pickupLoc = pickupBtn.textContent.replace(/\s*📍\s*$/, "").trim();
+    const dropLoc = dropBtn.textContent.replace(/\s*📍\s*$/, "").trim();
+    
+      bookTaxi(
+        phNum.value.trim(),
+        fName.value.trim(),
+        pickupLoc,
+        dropLoc
+        ); // You can define this function in this file or import it
+    }
+  });
+  
+  
+function refreshRoutePath() {
+  if (pickupLatLng && dropLatLng) {
+    drawPath(pickupLatLng, dropLatLng);
+  }
+}
+function bookTaxi(phNum, fName,pickupLoc,dropLoc,stand){
+    //to views.py bookRide
+    bookBtn.textContent = "Booked";
+    const formData= new FormData();
+    formData.append("full_name", fName);
+  formData.append("ph_num", phNum);
+  formData.append("stand", 'anchamile');
+  formData.append("pickup", pickupLoc);
+  formData.append("drop", dropLoc);
+  formData.append("distance", Distance);
+  formData.append("fare", fare);
+  
+ fetch("/bookride/", {
+   method:"POST",
+   body: formData
+ })
+ 
+  .then(res => res.json())
+  .then(data => {
+    alert("Ride Booked!");
+  });
+  bookBtn.textContent = "Booked";
+}
+
+function locateUser() {
+  if (myLocation) {
+    const myLocationIcon = L.icon({
+      iconUrl: "https://maps.gstatic.com/mapfiles/ms2/micons/blue-dot.png",
+      iconSize: [32, 32],
+      iconAnchor: [16, 32],
+      popupAnchor: [0, -32]
+    });
+
+    L.marker(myLocation, { icon: myLocationIcon })
+      .addTo(map)
+      .bindPopup("You are here")
+      .openPopup();
+
+    map.setView(myLocation, 17); // Zoom to location
+  } else {
+    notify("Location Loading...");
+  }
+}
+
+
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    map.invalidateSize(); // Forces correct map rendering
+  }, 300);
+});
+
+// Start checking for rides after page loads
+
+
+{% if ride %}
+    const rideId = {{ ride.id }};
+    const checkStatus = async () => {
+      const res = await fetch(`/check_ride_status/${rideId}`);
+      const data = await res.json();
+      if (data.status === "accepted") {
+        window.location.href = data.redirect_url;
+      }
+    };
+    setInterval(checkStatus, 5000);
+{% endif %}
+// check every 5 seconds
+</script>
+{% endblock %}
+

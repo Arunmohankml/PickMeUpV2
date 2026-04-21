@@ -1,0 +1,140 @@
+{% extends 'base.html' %}
+{% load static %} 
+
+{% block head %}
+<title>profile</title>
+<style>
+body {
+  margin: 0;
+  font-family: 'Segoe UI', sans-serif;
+  background: #fffbe6;
+}
+
+.profile-container {
+  display: flex;
+  justify-content: center;
+  padding: 2vh 2vw;
+}
+
+.profile-card {
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+  width: 90%;
+  max-width: 500px;
+  padding: 4vh 3vw;
+  text-align: center;
+  color: #333;
+  border: 3px solid #ffe600;
+}
+
+.profile-img {
+  width: 16vh;
+  height: 20vh;
+  border-radius: 20%;
+  border: 3px solid #ffe600;
+  margin-bottom: 2vh;
+}
+
+.profile-name {
+  font-size: 3vh;
+  margin: 1vh 0 0.5vh;
+  color: #222;
+}
+
+.profile-contact {
+  font-size: 1.8vh;
+  color: #555;
+  margin-bottom: 2vh;
+}
+
+.profile-tags {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 1vh;
+  margin-bottom: 2vh;
+}
+
+.tag {
+  background-color: #ffe600;
+  color: #000;
+  padding: 0.7vh 1.5vh;
+  border-radius: 20px;
+  font-size: 1.6vh;
+  font-weight: bold;
+}
+
+.profile-bio {
+  font-size: 1.7vh;
+  color: #444;
+  margin: 2vh 0;
+}
+
+.extra-info {
+  text-align: left;
+  font-size: 1.6vh;
+  line-height: 2.4vh;
+  color: #333;
+  padding-top: 1vh;
+  border-top: 1px solid #eee;
+}
+
+.edit-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.edit-container button {
+  background-color: #ffe600;
+  width: 40vh;
+  height: 7vh;
+  border: none;
+  padding: 2vh;
+  border-radius: 4vh;
+  font-weight: bold;
+  margin-top: 1vh;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+
+{% if username == profile.captain_name %}
+<div class="edit-container">
+  <button onclick="editProfile()">Edit profile</button>
+</div>
+{% endif %}
+
+<div class="profile-container">
+  <div class="profile-card">
+ <img src="{{profile.captain_image.url}}" class="profile-img" alt="...">
+
+    <h2 class="profile-name">{{ profile.captain_name }}</h2>
+    <p class="profile-contact">📞 {{ profile.captain_number }}</p>
+
+    <div class="profile-tags">
+      <span class="tag">🚖 {{ profile.captain_auto|default:"Taxi Type" }}</span>
+      <span class="tag">⭐ Level: {{profile.captain_level}}</span>
+      <span class="tag">🧭 {{ profile.captain_stand }}</span>
+    </div>
+
+    <div class="profile-bio">
+      {{ profile.captain_bio }}
+    </div>
+
+    <div class="extra-info">
+      <p><strong>Rating:</strong>{{profile.captain_rating}}</p>
+      <p><strong>Completed Rides:</strong> {{profile.rides_count}}</p>
+    </div>
+  </div>
+</div>
+
+<script>
+  function editProfile(){
+    window.location.href = "/edit_profile/";  // Change this to your actual 
+  }
+</script>
+
+{% endblock %}

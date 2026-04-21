@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{%block head%}
+ <title>Booking</title>
+{%endblock%}
+
+{%block content%}
+
+<div class="container mt-5" style="max-width: 500px;">
+  <div class="card shadow-lg rounded">
+    <div class="card-body">
+      <h2 class="card-title text-center mb-4">Register as {{ role }}</h2>
+
+      <form method="POST">
+        {% csrf_token %}
+        {% for field in form %}
+  <div class="mb-3">
+    {% if field.name == 'password1' %}
+      <label class="form-label">Password</label>
+    {% elif field.name == 'password2' %}
+      <label class="form-label">Confirm</label>
+    {% else %}
+      <label class="form-label">{{ field.label }}</label>
+    {% endif %}
+
+    {{ field }}
+
+    {% if field.errors %}
+      <div class="text-danger small">{{ field.errors }}</div>
+    {% endif %}
+  </div>
+{% endfor %}
+
+        <button type="submit" class="btn btn-primary w-100">Register</button>
+        <div class="text-center mt-3">
+          <a href="{% url 'login' %}">Already have an account? <strong>LOGIN</strong></a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{%endblock%}

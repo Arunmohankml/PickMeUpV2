@@ -1,0 +1,129 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block head %}
+<title>Edit Profile</title>
+<style>
+body {
+  margin: 0;
+  font-family: 'Segoe UI', sans-serif;
+  background: #fffbe6;
+}
+
+.edit-form-container {
+  display: flex;
+  justify-content: center;
+  padding: 3vh 2vw;
+}
+
+.edit-form {
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+  width: 90%;
+  max-width: 550px;
+  padding: 4vh 3vw;
+  border: 3px solid #ffe600;
+}
+
+.edit-form h2 {
+  text-align: center;
+  color: #222;
+  margin-bottom: 3vh;
+}
+
+.edit-form label {
+  font-weight: bold;
+  margin-top: 2vh;
+  display: block;
+  color: #444;
+}
+
+.edit-form input,
+.edit-form textarea,
+.edit-form select {
+  width: 100%;
+  padding: 1vh;
+  margin-top: 1vh;
+  margin-bottom: 2vh;
+  border: 2px solid #ffe600;
+  border-radius: 10px;
+  background-color: #fffbe6;
+  font-size: 1.7vh;
+}
+
+.edit-form textarea {
+  resize: vertical;
+}
+
+.edit-form small {
+  display: block;
+  color: #999;
+  font-size: 1.3vh;
+  margin-top: -1.5vh;
+  margin-bottom: 1.5vh;
+}
+
+.edit-form button {
+  background-color: #ffe600;
+  border: none;
+  padding: 2vh;
+  width: 100%;
+  border-radius: 4vh;
+  font-weight: bold;
+  font-size: 2vh;
+  margin-top: 2vh;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="edit-form-container">
+  <form class="edit-form" method="POST" enctype="multipart/form-data">
+    {% csrf_token %}
+    <h2>Edit Profile</h2>
+
+    <label for="captain_name">Name</label>
+    <input type="text" name="captain_name" placeholder="{{ profile.captain_name }}" readonly  />
+
+    <label for="captain_number">Contact Number</label>
+    <input type="text" name="captain_number" value="{{ profile.captain_number }}" required />
+
+   <label for="captain_auto">Taxi Type</label>
+<select name="captain_auto" id="captain_auto">
+  <option value="2 seater" {% if profile.captain_auto == "2 seater" %}selected{% endif %}>2 seater</option>
+  <option value="3 seater" {% if profile.captain_auto == "3 seater" %}selected{% endif %}>3 seater</option>
+  <option value="5 seater" {% if profile.captain_auto == "5 seater" %}selected{% endif %}>5 seater</option>
+  <option value="8 seater" {% if profile.captain_auto == "8 seater" %}selected{% endif %}>8 seater</option>
+  <option value="CNG" {% if profile.captain_auto == "CNG" %}selected{% endif %}>CNG</option>
+  <option value="Electric" {% if profile.captain_auto == "Electric" %}selected{% endif %}>Electric</option>
+</select>
+
+
+ <label for="captain_stand">Stand</label>  
+<select id="captain_stand" name="captain_stand" class="inputbox">  
+  {% for stand in stands %}
+    <option value="{{ stand }}" {% if profile.captain_stand == stand %}selected{% endif %}>
+      {{ stand|title }}
+    </option>
+  {% endfor %}
+</select>
+
+   
+
+
+    <label for="captain_bio">Bio</label>
+    <textarea name="captain_bio">{{ profile.captain_bio }}</textarea>
+
+    <label for="captain_image">Profile Image</label>
+    <input type="file" name="captain_image" />
+
+    <hr />
+    <small>🔒 The following fields are **not shown to the public**.</small>
+    <label for="captain_aadhar">Aadhar Number</label>
+    <input type="text" name="captain_aadhar" value="{{ profile.captain_aadhar }}" />
+
+    <button type="submit">Save Changes</button>
+  </form>
+</div>
+{% endblock %}

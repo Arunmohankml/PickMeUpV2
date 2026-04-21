@@ -1,0 +1,178 @@
+{% extends 'base.html' %}
+
+{% block style %}
+ <title>Requests</title>
+ 
+<style>
+
+  .req-box{
+    
+    padding:3vh;
+    border:none;
+    border-radius: 1vh;
+    
+    }
+  
+</style>
+{%endblock%}
+
+<!-- Dynamic Content aBlock -->
+{% block content %}
+
+
+
+<h1>REQUESTS</h1>
+<div id="req-container" ></div>
+
+<script>
+window.onload = function() {
+    {% if logged and role == 'driver' and not verified %}
+      window.location.href = "/edit_profile/";
+    {% endif %}
+  };
+
+async function findLocation(lat, lon) {
+  try {
+    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`);
+    const data = await res.json();
+    return data.display_name;
+  } catch (err) {
+    console.error("Error fetching location:", err);
+    return "Unknown Location";
+  }
+}
+function acceptRide(rideId){
+  fetch("/accept_ride/", { 
+    method: "POST",
+    headers: {
+      'X-CSRFToken': '{{ csrf_token }}',
+      'Content-Type': 'application/x-www-form-urlencoded'
+    },
+    body: `ride_id=${rideId}`
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.status === 'accepted') {
+      window.location.href = data.redirect_url;  // Go to ride_active page
+    } else {
+      alert('Error accepting ride');
+    }
+  })
+  .catch(err => {
+    console.error("Failed to accept ride:", err);
+    alert("Something went wrong.");
+  });
+}
+
+async function createRideBox(data) {
+  const box = document.createElement("div");
+  box.className = "req-box";
+
+  const [plat, plon] = data.pickup.split(',').map(s => s.trim());
+  const [dlat, dlon] = data.drop.split(',').map(s => s.trim());
+
+  box.innerHTML = `
+  <div style="background-color: #fffbea;padding:1.5vh;  border-radius: 1.5vh; box-shadow: 0 4px 8px rgba(0,0,0,0.1); margin:1.5vh;">
+  
+    <h5 style="margin-bottom: 1vh; color: #333;">🚖 From ${data.full_name}</h5>
+    
+    <div class="client-detiles" style="display:none; margin-top: 10px; padding: 1vh; background-color: #fff; border-radius: 1vh; border: 1px solid #f0e68c;">
+    
+      <p style="margin: 0.5vh 0; font-weight: 500; color: #555;">From: <span class="from-loc" style="color: #777;">Loading...</span></p>
+      <br>
+      <p style="display: block; margin: 0.5vh 0; font-weight: 500; color: #555;">To: <span class="to-loc" style="color: #777;">Loading...</span></p>
+      
+        <p class="ride-det" style="display: block; margin: 0.5vh 0; font-weight: 500; color: red;">Distance: ${data.distance}</p>
+        
+        <f class="ride-det" style="display: block; margin: 0.5vh 0; font-weight: 500; color: red;">Fare: ${data.fare}</f>
+        
+      <div class="cont1" style="display:flex; flex-direction:row; justify-content:center; gap:2vh; margin-top: 1vh;">
+      
+        <button class="gmap-btn" style="background-color: #ffd700; border: none; padding: 0.8vh 1.2vh; border-radius: 1vh; color: #333; font-weight: bold; cursor: pointer;">
+          Open in maps
+        </button>
+        
+        <button class="acceptBtn" onclick="acceptRide(${data.rideId})" style="background-color: #ffcc00; border: none; padding: 0.8vh 1.2vh; border-radius: 1vh; color: #333; font-weight: bold; cursor: pointer;">
+          Accept request
+        </button>
+      </div>
+    </div>
+  </div>`;
+
+  document.getElementById("req-container").appendChild(box);
+ 
+  const gmapBtn = box.querySelector('.gmap-btn');
+  gmapBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    window.open(`https://www.google.com/maps/dir/?api=1&destination=${plat},${plon}`, '_blank');
+  });
+
+  const fromText = box.querySelector(".from-loc");
+  const toText = box.querySelector(".to-loc");
+    findLocation(plat, plon).then(plocation => {
+      if (fromText) fromText.textContent = plocation;
+    });
+    
+    findLocation(dlat, dlon).then(dlocation => {
+      if (toText) toText.textContent = dlocation;
+    });
+    
+    box.addEventListener("click", () => {
+    const details = box.querySelector(".client-detiles");
+    details.style.display = details.style.display === "none" ? "block" : "none";
+});
+}
+ 
+ 
+const shownRides = new Set(); // Track shown ride keys
+
+function renderRide(r) {
+  const rideKey = `${r.full_name}_${r.pickup}_${r.drop}_${r.ph_number}_${r.stand}_${r.time}`;
+  if (!shownRides.has(rideKey)) {
+    shownRides.add(rideKey);
+    const detiles = {
+      rideId: r.id,
+      full_name: r.full_name,
+      ph_number: r.ph_number,
+      pickup: r.pickup.replace("📍",""),
+      drop: r.drop.replace("📍",""),
+      distance: r.distance,
+      fare: r.fare,
+    };
+    createRideBox(detiles);
+    
+  }
+}
+
+function fetchAndRenderRides() {
+  fetch('/getnewrides/')
+    .then(res => res.json())
+    .then(data => {
+      if (data.rides.length > 0) {
+        data.rides.forEach(r => renderRide(r));
+      }
+    });
+}
+
+// On page load: show all saved rides
+  document.addEventListener('DOMContentLoaded', () => {
+  {% if logged and role == 'driver' %}
+      fetchAndRenderRides();       // show existing ones
+      setInterval(fetchAndRenderRides, 5000); // poll for new ones
+  {% endif %}
+    
+    /*const detiles = {
+      full_name: "Aeejekw",
+      ph_number: "272822",
+      pickup: "11.2460, 76.2887",
+      drop:"11.2460, 76.2887",
+      distance: "2882",
+      fare: "72",
+    };
+    createRideBox(detiles);*/
+  });
+
+
+
+</script>
+{% endblock %}

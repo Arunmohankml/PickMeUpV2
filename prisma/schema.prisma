@@ -1,0 +1,79 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id            Int           @id @default(autoincrement())
+  username      String        @unique
+  password      String
+  role          String        @default("user") // "user" or "driver"
+  profile       Profile?
+  acceptedRides RideRequest[] @relation("DriverRides")
+}
+
+model Profile {
+  id               Int      @id @default(autoincrement())
+  captain_name     String   @unique
+  captain_auto     String   @default("normal")
+  captain_bio      String   @default("No bio available")
+  captain_stand    String   @default("No Stand")
+  captain_image    String   @default("default.jpg")
+  captain_number   String   @default("00000000000000")
+  captain_level    String   @default("Beginner")
+  captain_rating   Float    @default(0.0)
+  rides_count      Int      @default(0)
+  created_date     String   @default("0/0/2025")
+  captain_aadhar   String   @default("0000000000")
+  captain_verified Boolean  @default(false)
+  user             User     @relation(fields: [captain_name], references: [username], onDelete: Cascade)
+}
+
+model RideRequest {
+  id             Int           @id @default(autoincrement())
+  client_name    String
+  client_number  String        @default("Not given")
+  client_stand   String        @default("ppm")
+  pickup_coords  String        // stores address text
+  pickup_lat     Float?        // pinpoint lat
+  pickup_lng     Float?        // pinpoint lng
+  drop_coords    String        // stores address text
+  drop_lat       Float?        // pinpoint lat
+  drop_lng       Float?        // pinpoint lng
+  ride_distance  String        @default("nil")
+  ride_fare      String        @default("nil")
+  timestamp      DateTime      @default(now())
+  accepted_by_id Int?
+  is_active      Boolean       @default(false)
+  ride_status    String        @default("pending") // pending, accepted, in_progress, completed, cancelled
+  otp            String?       // 4 digit otp
+  driver_lat     Float?        // live driver location
+  driver_lng     Float?        // live driver location
+  driver         User?         @relation("DriverRides", fields: [accepted_by_id], references: [id], onDelete: SetNull)
+  messages       ChatMessage[]
+}
+
+model ChatMessage {
+  id        Int         @id @default(autoincrement())
+  ride_id   Int
+  ride      RideRequest @relation(fields: [ride_id], references: [id], onDelete: Cascade)
+  sender    String      // username
+  content   String
+  timestamp DateTime    @default(now())
+}
+
+model Rating {
+  id           Int      @id @default(autoincrement())
+  captain_name String
+  client_name  String
+  stars        Int      @default(5)
+  feedback     String?
+  timestamp    DateTime @default(now())
+}

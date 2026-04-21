@@ -1,0 +1,129 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{%block head%}
+   <title>Profiles</title>
+   
+   <style>
+  .centering-box{
+    margin-top:3vh;
+    display: flex;
+    justify-content: center;   /* centers horizontally */
+  align-items: center;  
+  }
+.c-stand-contianer {
+  display: flex;
+  justify-content: center;   /* centers horizontally */
+  align-items: center;       /* centers vertically */
+  height: 10vh;
+  width: 45vh;
+  
+  border-radius: 2vh;
+   border:2px solid #ffe52f;
+}
+
+/* Optional: you can style the form if needed */
+.c-stand-contianer form {
+  font-size: 1.7vh;
+}
+.c-stand-contianer select {
+  border-radius: 0.7vh;
+}
+
+.allcards{
+    display:flex;
+    flex-wrap: wrap;
+    
+    justify-content: center;
+    gap:10px;
+    margin-top:7%;
+    
+  }
+.card{
+  display:flex;
+    flex-direction:column;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    border-radius: 2vh;
+    justify-content: center;
+  align-items: center;
+}
+.card img{
+  border-radius: 1.8vh;
+margin-top:5%;
+  width:90%;
+  height:90%;
+  
+}
+.card-body{
+    font-size:1.5vh;
+    color:black;
+    display:flex;
+    flex-direction:column;
+    
+  }
+  .captain-name {
+  margin-bottom: 4px;
+  white-space:nowrap;
+  font-size:2vh;
+}
+.captain-auto {
+  margin: 0;
+}
+.captain-bio {
+  margin-top: 4px;
+  overflow-y:auto;
+}
+.card-body a{
+  margin-top:auto;
+  background-color:#ffe52f;
+  border: 1px solid #ffe52f;
+  color:black;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  border-radius:2vh;
+}
+</style>
+{%endblock%}
+
+
+{% block content %}
+
+<div class="centering-box">
+<div class="c-stand-contianer">
+<form method="get" action="">
+<b><label for="Stands">Choose a stand:</label></b>
+<select name="stand" id="stands" onchange="this.form.submit()">
+<option value="anchamile" {% if request.GET.stand == "anchamile" %}selected{% endif %}>Anchamile</option>
+<option value="ppm" {% if request.GET.stand == "ppm" %}selected{% endif %}>Pookkottumpadam</option>
+</select>
+</form>
+</div>
+</div>
+
+<div class="allcards">
+  {% for p in profile %}
+    <div class="card" style="width: 45%;" onclick="viewProfile('{{ p.captain_name }}')">
+      <img src="{{p.captain_image.url}}" class="card-img-top" alt="...">
+      <div class="card-body">
+        <h5 class="captain-name">{{ p.captain_name }}</h5>
+        <p class="captain-auto"><b>{{ p.captain_auto}}</b></p>
+        <p class="captain-bio">{{ p.captain_bio }}</p>
+        
+                  <button onclick="window.location.href='tel:{{ profile.captain_number }}'"  style="height:3vh; background-color:yellow; border:none; border-radius:3vh;" class="btn-primary">Call</button>
+      </div>
+     
+    </div>
+  {% endfor %}
+</div>
+<script>
+  
+window.onload = function() {
+    {% if logged and role == 'driver' and not verified %}
+      window.location.href = "/edit_profile/";
+    {% endif %}
+  };
+
+ function viewProfile(captainName){
+   window.location.href = `/profiles/${captainName}`;
+ }
+</script>
+{% endblock %} 

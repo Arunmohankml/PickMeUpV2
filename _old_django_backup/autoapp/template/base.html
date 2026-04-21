@@ -1,0 +1,127 @@
+<!-- templates/base.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
+
+  <style>
+body { margin: 0; background-color: #ffffff; }
+
+#notify-container {
+    display:none;
+    position: fixed;
+    justify-content:center;
+    align-items:center;
+    width:100%;
+    height:100%;
+    background-color:#00000026;
+    z-index:9999;
+    pointer-events:all;
+    
+   }
+   
+#notify-box {
+  
+  background-color:#2e2e2e;
+  color:white;
+  padding:3vh;
+  border-radius: 10px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+  text-align: center;
+   width:40vh;
+       
+  display: inline-block;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  font-weight: bold;
+}
+.notify-buttons{
+  padding:2vh;
+  background-color:#ebebeb ;
+  border:none;
+  border-radius:2vh;
+  width:13vh;
+  height:6vh;
+  margin-left:2vh;
+  
+  font-weight: bold;
+}
+    
+    
+.upperbar { display: flex; width: 100%; height: 45px; background-color: #ffe52f; }
+.upperbox { width: 30%; height: 44px; }
+.upperbox:hover { background-color: #c5b400; }
+.upperbox p { justify-content: center; margin-top: 2%; color: black; display: flex; font-size: 13px; font-weight: bold; }
+  </style>
+  {% block head %}
+  {% endblock %}
+</head>
+<body>
+
+  <!-- Header Bar -->
+<div class="upperbar">
+  <div class="upperbox"><a href="{% url 'home' %}"><p>Home</p></a></div>
+  <div class="upperbox"><a href="{% url 'profiles' %}"><p>Profiles</p></a></div>
+
+{% if logged and role == 'driver' %}
+    <div class="upperbox"><a href="{% url 'requests' %}"><p>Requests</p></a></div>
+  {% elif logged and role == 'user' %}
+    <div class="upperbox"><a href="{% url 'booking' %}"><p>Book Ride</p></a></div>
+  {% endif %}
+</div>
+
+ <div id="notify-container">
+  <div id="notify-box">
+  </div>
+</div>
+    
+
+ 
+<script>
+
+  
+  function notify(msg, onConfirm = null, onCancel = null) {
+    const Ncont = document.getElementById('notify-container');
+    const Nbox = document.getElementById('notify-box');
+
+    // Clear existing content
+    Nbox.innerHTML = '';
+
+    // Add message
+    const p = document.createElement('p');
+    p.textContent = msg;
+    p.style="margin:2vh; font-size:2vh;";
+    Nbox.appendChild(p);
+
+    // Create buttons
+    const okBtn = document.createElement('button');
+    okBtn.textContent = "OK";
+    
+    okBtn.onclick = function() {
+      Ncont.style.display = 'none';
+      if (onConfirm) onConfirm();
+    };
+
+    const cancelBtn = document.createElement('button');
+    cancelBtn.textContent = "CANCEL";
+    cancelBtn.onclick = function() {
+      Ncont.style.display = 'none';
+      if (onCancel) onCancel();
+    };
+
+    // Add buttons to the box
+    Nbox.appendChild(okBtn);
+    Nbox.appendChild(cancelBtn);
+    cancelBtn.className="notify-buttons";
+    okBtn.className="notify-buttons";
+    // Show
+   Ncont.style.display = 'flex';
+  }
+  
+</script>
+ {% block content %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,343 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block head %}
+  <title>Your Driver</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #fff;
+      color: #333;
+    }
+
+    .header {
+      background-color: #FFD600;
+      padding: 2.5vh 4vw;
+      font-size: 2vh;
+      font-weight: bold;
+      color: #000;
+      text-align: center;
+    }
+
+    .container-wrapper {
+      display: inline-block;
+      transform: scale(0.85);
+      transform-origin: top center;
+      width: 100%;
+      margin-bottom:-12vh;
+    }
+
+    .ride-active-container {
+      width: 90%;
+      max-width: 90vh;
+      margin: 2vh auto;
+      padding: 2vh;
+      background-color: #ffffee;
+      border: 2px solid #FFD600;
+      border-radius: 2vh;
+      box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+    }
+
+    .profile-image {
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      object-fit: cover;
+      margin: 1.5vh auto 0;
+      display: block;
+      border: 3px solid #FFD600;
+    }
+
+    .name-box {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 1vh;
+    }
+
+    .ride-info {
+      width: 90%;
+      max-width: 600px;
+      margin: 3vh auto;
+    }
+
+    .info-box {
+      margin-bottom: 2vh;
+      padding: 2vh;
+      background-color: #fffde7;
+      border: 1px solid #FFD600;
+      border-radius: 1.5vh;
+    }
+
+    .info-label {
+      font-weight: bold;
+      font-size: 2vh;
+    }
+
+    .bio-box {
+      margin: 2vh auto;
+      padding: 2vh;
+      background-color: #fffde7;
+      border: 1px solid #FFD600;
+      border-radius: 1.5vh;
+    }
+
+    .profile-tags {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 1vh;
+      margin-bottom: 2vh;
+    }
+
+    .tag {
+      background-color: #ffe600;
+      color: #000;
+      padding: 0.6vh 1.4vh;
+      border-radius: 20px;
+      font-size: 1.5vh;
+      font-weight: bold;
+    }
+
+    .actions {
+      display: flex;
+      justify-content: center;
+      margin-top: 2vh;
+    }
+
+    .action-btn {
+      padding: 1.2vh 2.5vh;
+      border-radius: 2vh;
+      background-color: #fff;
+      color: #000;
+      border: 2px solid #FFD600;
+      font-size: 1.9vh;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .bottom-btn {
+      background-color: #ff3b3b;
+      color: #fff;
+      border: none;
+      padding: 1.5vh;
+      width: 90%;
+      margin: 2vh auto;
+      border-radius: 2vh;
+      font-size: 2vh;
+      font-weight: bold;
+      display: block;
+    }
+
+    .vehicle-info {
+      font-size: 1.8vh;
+      color: #555;
+      text-align: center;
+      margin-bottom: 1.5vh;
+    }
+    
+    #map{
+      height:50vh;
+    }
+  </style>
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+<script>
+  
+{% endblock %}
+
+{% block content %}
+
+  <div class="header">Captain {{ profile.captain_name }} is on the way</div>
+
+  <!-- SCALED DRIVER PROFILE SECTION -->
+  <div class="container-wrapper">
+    <div class="ride-active-container">
+      {% if profile.captain_image %}
+        <img class="profile-image" src="{{ profile.captain_image.url }}" alt="Photo of Captain {{ profile.captain_name }}">
+      {% endif %}
+
+      <div class="name-box">
+        <div class="info-label">{{ profile.captain_name }}</div>
+      </div>
+
+      <div class="bio-box">
+        <div class="info-label">Bio:</div>
+        <div>{{ profile.captain_bio }}</div>
+      </div>
+      
+
+      <div class="profile-tags">
+        <span class="tag">🚖 {{ profile.captain_auto|default:"Taxi Type" }}</span>
+        <span class="tag">⭐ Level: {{ profile.captain_level }}</span>
+        <span class="tag">🧭 {{ profile.captain_stand }}</span>
+      </div>
+
+      <div class="actions">
+        <button class="action-btn" onclick="window.location.href='tel:{{ profile.captain_number }}'">📞 Call Captain</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- FULL-SIZE RIDE INFO SECTION -->
+  
+  
+  <div class="ride-info">
+    
+    <div class="info-box">
+      <div id="map"></div>
+    </div>
+    
+     <div class="info-box">
+      <div class="info-label" id="driver-distance">Distance:</div>
+      <div id="dist-label"></div>
+    </div>
+    
+    <div class="info-box">
+      <div class="info-label">Pickup Location:</div>
+      <div>{{ ride.pickup_coords }}</div>
+    </div>
+
+    <div class="info-box">
+      <div class="info-label">Drop Location:</div>
+      <div>{{ ride.drop_coords }}</div>
+    </div>
+
+    <div class="info-box">
+      <div class="info-label">Fare:</div>
+      <div>{{ ride.ride_fare }}</div>
+    </div>
+
+    <div class="vehicle-info">
+      Vehicle: KA 03 AB 1234 | Bajaj Platina
+    </div>
+
+    <button class="bottom-btn" onclick="askCancelRide({{ ride.id }}, 'cancel')">Cancel Ride</button>
+  </div>
+  
+<script>
+
+let Distance=0;
+const map = L.map('map').setView([11.246206, 76.288803], 12); 
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 20,
+    attribution: '&copy; OpenStreetMap contributors'
+  }).addTo(map);
+  
+
+ const myLocationIcon = L.icon({
+  iconUrl: "https://i.ibb.co/Mkhy1nhW/oval-1.png",
+  iconSize: [10, 10],        // Width and height of the image
+  iconAnchor: [5, 5],        // Center of the icon
+  popupAnchor: [0, -10]
+});
+
+    //gib pickup loc here
+
+let raw = '{{ ride.pickup_coords|escapejs }}';
+let parts= raw.replace('📍','').trim().split(",").map(x => parseFloat(x));
+
+let myMark = L.marker(parts, { icon: myLocationIcon }).addTo(map).bindPopup("You").openPopup();
+
+let driverCoords = [11.23, 76.288803];
+
+const driverIcon = L.icon({
+  iconUrl: 'https://i.ibb.co/fY21LxVq/taxi.png',
+  iconSize: [20, 20],
+  iconAnchor: [10, 10],      // Center of the image
+  popupAnchor: [0, -10],
+});
+
+let driverMarker = L.marker(driverCoords, { icon: driverIcon }).addTo(map);
+
+ function askCancelRide(rideId, reason) {
+  notify(
+    "Are you sure (ride will be deleted)",
+    function confirmed() {
+      cancelRide(rideId, reason);  // Proceed if OK
+    },
+    function cancelled() {
+      console.log("User cancelled action");
+    }
+  );
+}
+
+function cancelRide(rideId, reason) {
+  fetch("{% url 'c_cancel_ride' %}", {
+    method: "POST",
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': getCookie('csrftoken')  // if CSRF is enforced
+    },
+    body: JSON.stringify({
+      ride_id: rideId,
+      reason: reason
+    })
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.status === "cancelled") {
+      notify("Ride cancelled successfully");
+      window.location.href = "/home";  // or any redirect you want
+    }
+  });
+}
+
+
+function getCookie(name) {
+  let cookieValue = null;
+  if (document.cookie && document.cookie !== "") {
+    const cookies = document.cookie.split(";");
+    for (let i = 0; i < cookies.length; i++) {
+      const cookie = cookies[i].trim();
+      if (cookie.substring(0, name.length + 1) === (name + "=")) {
+        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+        break;
+      }
+    }
+  }
+  return cookieValue;
+}
+
+const rideId = "{{ride.id}}";
+const socket = new WebSocket(
+  (window.location.protocol === "https:" ? "wss://" : "ws://") + window.location.host + "/ws/ride/{{ ride.id }}/"
+);
+
+socket.onopen = function () {
+  console.log("✅ WebSocket connected.");
+};
+
+socket.onmessage = function (event) {
+  console.log("📩 Received message: " + event.data);
+
+  try {
+    const data = JSON.parse(event.data);
+
+    if (data.type === "driver_location") {
+      
+      driverCoords=[data.lat,data.lng]
+      driverMarker.setLatLng([data.lat, data.lng]);
+      // optional
+    }
+  } catch (err) {
+    console.log("❌ JSON parse error: " + err.message);
+  }
+};
+
+socket.onerror = function (err) {
+  console.log("🚨 WebSocket error: " + JSON.stringify(err));
+};
+
+socket.onclose = function () {
+  console.log("🔌 WebSocket closed.");
+};
+
+
+  </script>
+{% endblock %}
