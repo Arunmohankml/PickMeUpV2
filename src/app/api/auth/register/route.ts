@@ -5,9 +5,9 @@ import { signToken } from "@/lib/auth";
 
 export async function POST(req: NextRequest) {
   try {
-    const { username, password, role } = await req.json();
+    const { username, password, phone, role } = await req.json();
 
-    if (!username || !password || !role) {
+    if (!username || !password || !phone || !role) {
       return NextResponse.json({ error: "Missing fields" }, { status: 400 });
     }
 
@@ -25,6 +25,7 @@ export async function POST(req: NextRequest) {
       data: {
         username,
         password: hashedPassword,
+        phone,
         role,
       },
     });

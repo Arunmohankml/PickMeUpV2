@@ -6,14 +6,15 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = "file:./dev.db"
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model User {
   id            Int           @id @default(autoincrement())
   username      String        @unique
   password      String
+  phone         String        @default("")
   role          String        @default("user") // "user" or "driver"
   profile       Profile?
   acceptedRides RideRequest[] @relation("DriverRides")

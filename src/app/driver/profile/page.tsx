@@ -3,7 +3,9 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
-import { User, Save } from "lucide-react";
+import { User, Save, LogOut } from "lucide-react";
+import PageHeader from "@/components/PageHeader";
+import { supabase } from "@/lib/supabase";
 
 export default function DriverProfile() {
   const { user, loading, refresh } = useAuth();
@@ -39,14 +41,34 @@ export default function DriverProfile() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const [isUploading, setIsUploading] = useState(false);
+
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setFormData({ ...formData, captain_image: reader.result as string });
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+
+    setIsUploading(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user?.id}-${Math.random()}.${fileExt}`;
+      const filePath = `avatars/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('profiles')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data } = supabase.storage
+        .from('profiles')
+        .getPublicUrl(filePath);
+
+      setFormData({ ...formData, captain_image: data.publicUrl });
+    } catch (error) {
+      alert("Error uploading image");
+      console.error(error);
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -74,28 +96,46 @@ export default function DriverProfile() {
   if (loading || !user) return <div className="container" style={{display:"flex", justifyContent:"center", paddingTop:"4rem"}}><div className="spinner"/></div>;
 
   return (
-    <div className="container animate-fade-in" style={{ paddingTop: "3rem" }}>
-      <div className="glass-card" style={{ maxWidth: "650px", margin: "0 auto" }}>
-        
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2rem" }}>
-          <h2 style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}><User color="var(--primary)" /> Captain Profile</h2>
-          {user.profile?.captain_verified ? (
-            <span style={{ background: "rgba(34,197,94,0.2)", color: "#4ade80", padding: "0.2rem 0.6rem", borderRadius: "12px", fontSize: "0.8rem", fontWeight: "600" }}>Verified</span>
-          ) : (
-             <span style={{ background: "rgba(248,113,113,0.2)", color: "#f87171", padding: "0.2rem 0.6rem", borderRadius: "12px", fontSize: "0.8rem", fontWeight: "600" }}>Unverified</span>
-          )}
-        </div>
+    <div className="no-select" style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
+      <PageHeader 
+        title="My Profile" 
+        backPath="/driver/dashboard" 
+        rightAction={
+          <button 
+            onClick={async () => {
+              await fetch("/api/auth/logout", { method: "POST" });
+              refresh();
+              router.push("/");
+            }}
+            style={{ background: "none", border: "none", color: "#f87171", cursor: "pointer", display: "flex", alignItems: "center", gap: "0.4rem", fontSize: "0.85rem" }}
+          >
+            <LogOut size={16} /> Logout
+          </button>
+        }
+      />
+      
+      <div className="container animate-fade-in" style={{ flex: 1, paddingTop: "1.5rem" }}>
+        <div className="glass-card" style={{ maxWidth: "650px", margin: "0 auto", padding: "1.5rem" }}>
+          
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
+            <h2 style={{ fontSize: "1.2rem", color: "var(--text-muted)" }}>Captain Details</h2>
+            {user.profile?.captain_verified ? (
+              <span style={{ background: "rgba(34,197,94,0.1)", color: "#4ade80", padding: "0.2rem 0.6rem", borderRadius: "12px", fontSize: "0.7rem", fontWeight: "700" }}>VERIFIED</span>
+            ) : (
+               <span style={{ background: "rgba(248,113,113,0.1)", color: "#f87171", padding: "0.2rem 0.6rem", borderRadius: "12px", fontSize: "0.7rem", fontWeight: "700" }}>UNVERIFIED</span>
+            )}
+          </div>
 
         <form onSubmit={handleSubmit}>
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: "2rem" }}>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: "1.5rem" }}>
             <div style={{ 
-              width: "120px", 
-              height: "120px", 
+              width: "100px", 
+              height: "100px", 
               borderRadius: "50%", 
               overflow: "hidden", 
-              background: "rgba(255,255,255,0.05)",
+              background: "rgba(255,255,255,0.03)",
               border: "2px solid var(--primary)",
-              marginBottom: "1rem",
+              marginBottom: "0.8rem",
               display: "flex",
               justifyContent: "center",
               alignItems: "center"
@@ -103,82 +143,70 @@ export default function DriverProfile() {
               {formData.captain_image && formData.captain_image !== "default.jpg" ? (
                 <img src={formData.captain_image} alt="Profile" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
               ) : (
-                <User size={64} color="rgba(255,255,255,0.2)" />
+                <User size={48} color="rgba(255,255,255,0.1)" />
               )}
             </div>
-            <label className="btn-secondary" style={{ cursor: "pointer", fontSize: "0.9rem" }}>
-              Change Photo
-              <input type="file" accept="image/*" onChange={handleImageChange} style={{ display: "none" }} />
+            <label className="btn-secondary active-scale" style={{ cursor: isUploading ? "not-allowed" : "pointer", fontSize: "0.8rem", padding: "0.4rem 1rem", border: "none", opacity: isUploading ? 0.6 : 1 }}>
+              {isUploading ? "Uploading..." : "Change Photo"}
+              <input type="file" accept="image/*" onChange={handleImageChange} style={{ display: "none" }} disabled={isUploading} />
             </label>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "0.8rem", marginBottom: "1.2rem" }}>
             <div className="input-group">
-              <label className="input-label">Captain Name</label>
-              <input type="text" className="input-field" value={user.username} disabled style={{ opacity: 0.7 }} />
+              <label className="input-label" style={{ fontSize: "0.75rem" }}>Full Name</label>
+              <input type="text" className="input-field" value={user.username} disabled style={{ background: "rgba(255,255,255,0.02)", opacity: 0.6 }} />
             </div>
             <div className="input-group">
-              <label className="input-label">Phone Number</label>
-              <input type="text" name="captain_number" className="input-field" value={formData.captain_number} onChange={handleChange} required />
-            </div>
-          </div>
-
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
-            <div className="input-group">
-              <label className="input-label">Auto Type</label>
-              <select name="captain_auto" className="input-field" value={formData.captain_auto} onChange={handleChange} style={{ appearance: "none" }}>
-                <option value="normal" style={{background:"#0f172a"}}>Normal</option>
-                <option value="electric" style={{background:"#0f172a"}}>Electric</option>
-                <option value="premium" style={{background:"#0f172a"}}>Premium</option>
-              </select>
-            </div>
-            <div className="input-group">
-              <label className="input-label">Stand Location</label>
-              <select name="captain_stand" className="input-field" value={formData.captain_stand} onChange={handleChange} style={{ appearance: "none" }}>
-                <option value="anchamile" style={{background:"#0f172a"}}>Anchamile</option>
-                <option value="pookkottumpadam" style={{background:"#0f172a"}}>Pookkottumpadam</option>
-                <option value="wandoor" style={{background:"#0f172a"}}>Wandoor</option>
-              </select>
+              <label className="input-label" style={{ fontSize: "0.75rem" }}>Phone Number</label>
+              <input type="text" name="captain_number" className="input-field" value={formData.captain_number} onChange={handleChange} placeholder="9876543210" required />
             </div>
           </div>
 
-          <div className="input-group">
-            <label className="input-label">Aadhar Number (Verification)</label>
-            <input type="text" name="captain_aadhar" className="input-field" value={formData.captain_aadhar} onChange={handleChange} placeholder="Enter Aadhar for verification" />
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.8rem", marginBottom: "1.2rem" }}>
+
           </div>
 
-          <div className="input-group">
-            <label className="input-label">Bio (Max 100 chars)</label>
+          <div className="input-group" style={{ marginBottom: "1.2rem" }}>
+            <label className="input-label" style={{ fontSize: "0.75rem" }}>Aadhar Verification</label>
+            <input type="text" name="captain_aadhar" className="input-field" value={formData.captain_aadhar} onChange={handleChange} placeholder="0000 0000 0000" />
+          </div>
+
+          <div className="input-group" style={{ marginBottom: "1.5rem" }}>
+            <label className="input-label" style={{ fontSize: "0.75rem" }}>Bio</label>
             <textarea 
               name="captain_bio" 
               className="input-field" 
               maxLength={100}
               value={formData.captain_bio} 
               onChange={handleChange}
-              placeholder="Tell your riders something about yourself..."
-              style={{ minHeight: "80px", resize: "none" }}
+              placeholder="Driver bio..."
+              style={{ minHeight: "70px", resize: "none", fontSize: "0.85rem" }}
             />
           </div>
 
-          <div style={{ display: "flex", justifyContent: "space-between", background: "rgba(255,255,255,0.03)", padding: "1rem", borderRadius: "12px", marginBottom: "2rem" }}>
-            <div style={{ textAlign: "center" }}>
-              <span style={{ display: "block", color: "var(--text-muted)", fontSize: "0.8rem" }}>Rides</span>
-              <strong style={{ fontSize: "1.2rem" }}>{user.profile?.rides_count || 0}</strong>
+          <div style={{ display: "flex", justifyContent: "space-between", background: "rgba(255,255,255,0.02)", padding: "1rem", borderRadius: "12px", marginBottom: "1.5rem" }}>
+            <div style={{ textAlign: "center", flex: 1 }}>
+              <span style={{ display: "block", color: "var(--text-muted)", fontSize: "0.65rem" }}>RIDES</span>
+              <strong style={{ fontSize: "1.1rem" }}>{user.profile?.rides_count || 0}</strong>
             </div>
-            <div style={{ textAlign: "center" }}>
-              <span style={{ display: "block", color: "var(--text-muted)", fontSize: "0.8rem" }}>Rating</span>
-              <strong style={{ fontSize: "1.2rem" }}>{user.profile?.captain_rating?.toFixed(1) || "5.0"}</strong>
+            <div style={{ width: "1px", background: "var(--border)", margin: "0 10px" }} />
+            <div style={{ textAlign: "center", flex: 1 }}>
+              <span style={{ display: "block", color: "var(--text-muted)", fontSize: "0.65rem" }}>RATING</span>
+              <strong style={{ fontSize: "1.1rem" }}>{user.profile?.captain_rating?.toFixed(1) || "5.0"}</strong>
             </div>
-            <div style={{ textAlign: "center" }}>
-              <span style={{ display: "block", color: "var(--text-muted)", fontSize: "0.8rem" }}>Level</span>
-              <strong style={{ fontSize: "1.2rem", color: "var(--primary)" }}>{user.profile?.captain_level || "Beginner"}</strong>
+            <div style={{ width: "1px", background: "var(--border)", margin: "0 10px" }} />
+            <div style={{ textAlign: "center", flex: 1 }}>
+              <span style={{ display: "block", color: "var(--text-muted)", fontSize: "0.65rem" }}>LEVEL</span>
+              <strong style={{ fontSize: "1.1rem", color: "var(--primary)" }}>{user.profile?.captain_level?.toUpperCase() || "NEW"}</strong>
             </div>
           </div>
 
-          <button type="submit" className="btn-primary" style={{ width: "100%" }} disabled={isSubmitting}>
-            {isSubmitting ? <div className="spinner" /> : <><Save size={20} /> Save Profile</>}
+          <button type="submit" className="btn-primary active-scale" style={{ width: "100%", padding: "1.1rem" }} disabled={isSubmitting}>
+            {isSubmitting ? <div className="spinner" /> : "Save Profile Changes"}
           </button>
         </form>
+      </div>
       </div>
     </div>
   );

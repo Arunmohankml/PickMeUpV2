@@ -5,8 +5,11 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
 import Link from "next/link";
 import { UserPlus, LogIn, ArrowLeft } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 function AuthComponent() {
+  const t = useTranslations("Register");
+  const tc = useTranslations("Common");
   const router = useRouter();
   const searchParams = useSearchParams();
   const role = searchParams.get("role") || "user";
@@ -15,6 +18,7 @@ function AuthComponent() {
   const [isLogin, setIsLogin] = useState(false);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [phone, setPhone] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -28,7 +32,7 @@ function AuthComponent() {
       const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password, role }),
+        body: JSON.stringify({ username, password, phone, role }),
       });
 
       const data = await res.json();
@@ -51,67 +55,100 @@ function AuthComponent() {
   };
 
   return (
-    <div className="container animate-fade-in" style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "80vh" }}>
-      <div className="glass-card" style={{ width: "100%", maxWidth: "450px" }}>
+    <div className="no-select" style={{ minHeight: "100vh", display: "flex", flexDirection: "column", padding: "1rem" }}>
+      <button 
+        onClick={() => router.push("/")}
+        className="active-scale"
+        style={{
+          width: "44px",
+          height: "44px",
+          borderRadius: "50%",
+          background: "rgba(255, 255, 255, 0.05)",
+          border: "1px solid rgba(255, 255, 255, 0.1)",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          cursor: "pointer",
+          color: "#fff",
+          marginBottom: "1rem",
+          marginTop: "var(--safe-top)"
+        }}
+      >
+        <ArrowLeft size={20} />
+      </button>
+
+      <div className="animate-fade-in" style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div className="glass-card active-scale" style={{ width: "100%", maxWidth: "450px" }}>
         
-        <Link href="/" style={{ color: "var(--text-muted)", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "0.5rem", marginBottom: "2rem" }}>
-          <ArrowLeft size={16} /> Back to Home
-        </Link>
-        
-        <h2 style={{ marginBottom: "0.5rem" }}>
-          {isLogin ? "Welcome Back" : "Create Account"}
+        <h2 style={{ marginBottom: "0.5rem", fontSize: "1.8rem" }}>
+          {isLogin ? t("welcomeBack") : t("newAccount")}
         </h2>
-        <p style={{ color: "var(--text-muted)", marginBottom: "2rem" }}>
-          Join as a <strong style={{ color: "var(--primary)", textTransform: "capitalize" }}>{role}</strong>
+        <p style={{ color: "var(--text-muted)", marginBottom: "2rem", fontSize: "0.95rem" }}>
+          {t("joinAs")} <span style={{ color: "var(--primary)", fontWeight: "600", textTransform: "capitalize" }}>{role}</span>
         </p>
 
         {error && (
-          <div style={{ background: "rgba(239, 68, 68, 0.1)", border: "1px solid rgba(239, 68, 68, 0.3)", padding: "1rem", borderRadius: "8px", color: "#f87171", marginBottom: "1.5rem", fontSize: "0.95rem" }}>
+          <div style={{ background: "rgba(239, 68, 68, 0.1)", border: "1px solid rgba(239, 68, 68, 0.2)", padding: "0.8rem", borderRadius: "12px", color: "#f87171", marginBottom: "1.5rem", fontSize: "0.85rem", textAlign: "center" }}>
             {error}
           </div>
         )}
 
         <form onSubmit={handleSubmit}>
           <div className="input-group">
-            <label className="input-label">Username</label>
+            <label className="input-label">{tc("username")}</label>
             <input 
               type="text" 
               className="input-field" 
               value={username} 
               onChange={(e) => setUsername(e.target.value)} 
               required 
-              placeholder="Enter username"
+              placeholder={tc("username")}
             />
           </div>
           
           <div className="input-group">
-            <label className="input-label">Password</label>
+            <label className="input-label">{tc("password")}</label>
             <input 
               type="password" 
               className="input-field" 
               value={password} 
               onChange={(e) => setPassword(e.target.value)} 
               required 
-              placeholder="Enter password"
+              placeholder={tc("password")}
             />
           </div>
+ 
+          {!isLogin && (
+            <div className="input-group">
+              <label className="input-label">{tc("phone")}</label>
+              <input 
+                type="tel" 
+                className="input-field" 
+                value={phone} 
+                onChange={(e) => setPhone(e.target.value)} 
+                required 
+                placeholder="e.g. 9876543210"
+              />
+            </div>
+          )}
 
-          <button type="submit" className="btn-primary" style={{ width: "100%", marginTop: "1rem" }} disabled={loading}>
+          <button type="submit" className="btn-primary" style={{ width: "100%", marginTop: "0.5rem" }} disabled={loading}>
             {loading ? <div className="spinner" /> : (
-              isLogin ? <><LogIn size={20} /> Login</> : <><UserPlus size={20} /> Register</>
+              isLogin ? <><LogIn size={20} /> {t("login")}</> : <><UserPlus size={20} /> {t("register")}</>
             )}
           </button>
         </form>
 
-        <div style={{ marginTop: "2rem", textAlign: "center", color: "var(--text-muted)", fontSize: "0.95rem" }}>
-          {isLogin ? "Don't have an account?" : "Already have an account?"}{" "}
+        <div style={{ marginTop: "2rem", textAlign: "center", color: "var(--text-muted)", fontSize: "0.9rem" }}>
+          {isLogin ? t("needAccount") : t("haveAccount")}{" "}
           <button 
             type="button" 
             onClick={() => setIsLogin(!isLogin)}
-            style={{ background: "none", border: "none", color: "var(--primary)", cursor: "pointer", fontWeight: "600", fontSize: "0.95rem" }}
+            style={{ background: "none", border: "none", color: "var(--primary)", cursor: "pointer", fontWeight: "600", fontSize: "0.9rem" }}
           >
-            {isLogin ? "Register here" : "Login here"}
+            {isLogin ? t("register") : t("login")}
           </button>
+        </div>
         </div>
       </div>
     </div>

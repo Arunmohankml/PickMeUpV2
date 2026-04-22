@@ -10,6 +10,14 @@ export async function POST(req: NextRequest) {
     }
 
     const data = await req.json();
+ 
+    // Fetch user's registered phone number
+    const fullUser = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { phone: true }
+    });
+ 
+    const clientNumber = fullUser?.phone || "Not given";
 
     // Calculate road distance via OSRM API
     let distanceKm = 0;
@@ -31,8 +39,8 @@ export async function POST(req: NextRequest) {
     const ride = await prisma.rideRequest.create({
       data: {
         client_name: user.username,
-        client_number: data.ph_num || "Not given",
-        client_stand: data.stand || "ppm",
+        client_number: clientNumber,
+        client_stand: data.stand || "none",
         pickup_coords: data.pickup,
         pickup_lat: data.pickup_lat,
         pickup_lng: data.pickup_lng,

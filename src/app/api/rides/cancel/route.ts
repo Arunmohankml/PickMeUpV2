@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
         data: { rides_count: { increment: 1 } },
       });
 
-      // Set to completed so user can rate. User will trigger the final delete after rating.
+      // Set to completed 
       await prisma.rideRequest.update({
         where: { id: ride.id },
         data: { 
@@ -38,7 +38,24 @@ export async function POST(req: NextRequest) {
           is_active: false
         },
       });
-      return NextResponse.json({ status: "completed" });
+
+      // Check for next scheduled ride
+      const nextScheduled = await prisma.rideRequest.findFirst({
+        where: {
+          accepted_by_id: user.id,
+          ride_status: "scheduled"
+        },
+        orderBy: { timestamp: "asc" }
+      });
+
+      if (nextScheduled) {
+        await prisma.rideRequest.update({
+          where: { id: nextScheduled.id },
+          data: { ride_status: "accepted" }
+        });
+      }
+
+      return NextResponse.json({ status: "completed", nextRideId: nextScheduled?.id });
     }
 
     // Otherwise, it's a cancellation - delete immediately

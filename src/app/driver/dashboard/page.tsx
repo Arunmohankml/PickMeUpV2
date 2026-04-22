@@ -3,7 +3,10 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
-import { MapPin, Navigation, User, Navigation2, Route, IndianRupee, Ban } from "lucide-react";
+import { MapPin, Navigation, User, Navigation2, Route, IndianRupee, Ban, LogOut } from "lucide-react";
+import PageHeader from "@/components/PageHeader";
+import { useTranslations } from "next-intl";
+import { supabase } from "@/lib/supabase";
 
 // Haversine fallback (straight-line) for driver→pickup
 function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number) {
@@ -20,10 +23,12 @@ function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number) {
 }
 
 export default function DriverDashboard() {
-  const { user, loading } = useAuth();
+  const t = useTranslations("Driver");
+  const { user, loading, refresh } = useAuth();
   const router = useRouter();
   const [rides, setRides] = useState<any[]>([]);
   const [driverPos, setDriverPos] = useState<{ lat: number; lng: number } | null>(null);
+  const [activeRide, setActiveRide] = useState<any>(null);
   const [rideDistances, setRideDistances] = useState<Record<number, number>>({});
 
   useEffect(() => {
@@ -60,12 +65,12 @@ export default function DriverDashboard() {
       const data = await res.json();
       setRides(data.rides || []);
 
-      // Check if driver already has an active ride
       const statusRes = await fetch("/api/rides/status");
       const statusData = await statusRes.json();
       if (statusData.ride && statusData.ride.is_active) {
-        router.push(`/driver/ride?id=${statusData.ride.id}`);
-        return;
+        setActiveRide(statusData.ride);
+      } else {
+        setActiveRide(null);
       }
 
       // Calc distances for each ride if we have driver pos
@@ -83,8 +88,26 @@ export default function DriverDashboard() {
 
   useEffect(() => {
     fetchRides();
-    const interval = setInterval(fetchRides, 6000);
-    return () => clearInterval(interval);
+
+    // Subscribe to any changes in RideRequest table
+    const channel = supabase
+      .channel("available-rides")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "RideRequest",
+        },
+        () => {
+          fetchRides();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [driverPos]);
 
   const acceptRide = async (rideId: number) => {
@@ -99,91 +122,143 @@ export default function DriverDashboard() {
   if (loading || !user) return <div className="container" style={{ display: "flex", justifyContent: "center", paddingTop: "4rem" }}><div className="spinner" /></div>;
 
   return (
-    <div className="container animate-fade-in" style={{ paddingTop: "3rem" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2rem" }}>
-        <div>
-          <h2 style={{ marginBottom: "0.25rem" }}>Ride Requests 📡</h2>
+    <div className="no-select" style={{ minHeight: "var(--app-height)", display: "flex", flexDirection: "column" }}>
+      <PageHeader 
+        title={t("dashboard")} 
+        backPath="/" 
+        rightAction={
+          <div style={{ display: "flex", gap: "0.8rem" }}>
+             <button 
+              onClick={() => router.push("/driver/profile")}
+              style={{ background: "none", border: "none", color: "var(--primary)", cursor: "pointer", display: "flex", alignItems: "center", gap: "0.4rem" }}
+            >
+              <User size={20} />
+            </button>
+            <button 
+              onClick={async () => {
+                await fetch("/api/auth/logout", { method: "POST" });
+                refresh();
+                router.push("/");
+              }}
+              style={{ background: "none", border: "none", color: "#f87171", cursor: "pointer", display: "flex", alignItems: "center", gap: "0.4rem" }}
+            >
+              <LogOut size={20} />
+            </button>
+          </div>
+        }
+      />
+      
+      <div className="container animate-fade-in" style={{ flex: 1, paddingTop: "1.5rem" }}>
+        <div style={{ marginBottom: "1.5rem" }}>
           {driverPos ? (
-            <p style={{ color: "#4ade80", fontSize: "0.85rem" }}>📍 Location found</p>
+            <div style={{ color: "#4ade80", fontSize: "0.75rem", display: "flex", alignItems: "center", gap: "4px" }}>
+              <span style={{width: 6, height: 6, background: "#4ade80", borderRadius: "50%"}} /> {t("activeLocation")}
+            </div>
           ) : (
-            <p style={{ color: "#f87171", fontSize: "0.85rem" }}>📍 Enable location for accurate distances</p>
+            <p style={{ color: "#f87171", fontSize: "0.75rem" }}>{t("enableGPS")}</p>
           )}
         </div>
-        <button className="btn-secondary" onClick={() => router.push("/driver/profile")} style={{ padding: "0.5rem 1rem", fontSize: "0.9rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
-          <User size={16} /> Profile
-        </button>
-      </div>
 
       {rides.length === 0 ? (
-        <div className="glass-card" style={{ textAlign: "center", padding: "4rem 2rem" }}>
-          <div style={{ display: "inline-block", background: "rgba(255,255,255,0.05)", padding: "1.5rem", borderRadius: "50%", marginBottom: "1.5rem" }}>
-            <Ban size={48} color="var(--text-muted)" />
+        <div className="full-screen-center" style={{ minHeight: "60dvh" }}>
+          <div className="glass-card" style={{ textAlign: "center", padding: "2.5rem 1.5rem", width: "100%" }}>
+            <div style={{ display: "inline-block", background: "rgba(255,255,255,0.03)", padding: "1.2rem", borderRadius: "50%", marginBottom: "1rem" }}>
+              <Ban size={32} color="var(--text-muted)" />
+            </div>
+            <h3 style={{ fontSize: "1.1rem" }}>{t("noRides")}</h3>
+            <p style={{ color: "var(--text-muted)", marginTop: "0.4rem", fontSize: "0.9rem" }}>{t("waitingPassengers")}</p>
           </div>
-          <h3>No requests nearby</h3>
-          <p style={{ color: "var(--text-muted)", marginTop: "0.5rem" }}>Waiting for passengers near your stand…</p>
         </div>
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))", gap: "1.5rem" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
           {rides.map((ride) => {
             const driverDist = rideDistances[ride.id];
             return (
-              <div key={ride.id} className="glass-card" style={{ padding: "1.5rem" }}>
-                {/* Header */}
+              <div key={ride.id} className="glass-card active-scale" style={{ padding: "1.2rem" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
-                  <span style={{ fontSize: "1.1rem", fontWeight: "700" }}>{ride.client_name}</span>
-                  <span style={{ background: "rgba(250,204,21,0.15)", color: "var(--primary)", padding: "0.2rem 0.6rem", borderRadius: "4px", fontSize: "0.8rem", fontWeight: "600" }}>
-                    {ride.client_stand.toUpperCase()}
-                  </span>
+                  <span style={{ fontSize: "1rem", fontWeight: "700" }}>{ride.client_name}</span>
+
                 </div>
 
-                {/* Distance Stats Row */}
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.5rem", marginBottom: "1.2rem" }}>
-                  <div style={{ background: "rgba(255,255,255,0.04)", padding: "0.6rem", borderRadius: "8px", textAlign: "center" }}>
-                    <p style={{ fontSize: "0.7rem", color: "var(--text-muted)", marginBottom: "0.2rem" }}>You → Pickup</p>
-                    <p style={{ fontWeight: "700", color: "var(--primary)", fontSize: "0.95rem" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.6rem", marginBottom: "1.2rem" }}>
+                  <div style={{ background: "rgba(255,255,255,0.03)", padding: "0.6rem", borderRadius: "10px", textAlign: "center" }}>
+                    <p style={{ fontSize: "0.65rem", color: "var(--text-muted)", marginBottom: "0.2rem" }}>{t("toPickup")}</p>
+                    <p style={{ fontWeight: "700", color: "var(--primary)", fontSize: "0.9rem" }}>
                       {driverDist !== undefined ? `${driverDist.toFixed(1)} km` : "— km"}
                     </p>
                   </div>
-                  <div style={{ background: "rgba(255,255,255,0.04)", padding: "0.6rem", borderRadius: "8px", textAlign: "center" }}>
-                    <p style={{ fontSize: "0.7rem", color: "var(--text-muted)", marginBottom: "0.2rem" }}>Trip Dist</p>
-                    <p style={{ fontWeight: "700", fontSize: "0.95rem" }}>{ride.ride_distance}</p>
+                  <div style={{ background: "rgba(255,255,255,0.03)", padding: "0.6rem", borderRadius: "10px", textAlign: "center" }}>
+                    <p style={{ fontSize: "0.65rem", color: "var(--text-muted)", marginBottom: "0.2rem" }}>{t("trip")}</p>
+                    <p style={{ fontWeight: "700", fontSize: "0.9rem" }}>{parseFloat(ride.ride_distance).toFixed(1)} km</p>
                   </div>
-                  <div style={{ background: "rgba(255,255,255,0.04)", padding: "0.6rem", borderRadius: "8px", textAlign: "center" }}>
-                    <p style={{ fontSize: "0.7rem", color: "var(--text-muted)", marginBottom: "0.2rem" }}>Fare</p>
-                    <p style={{ fontWeight: "700", color: "#4ade80", fontSize: "0.95rem" }}>{ride.ride_fare}</p>
-                  </div>
-                </div>
-
-                {/* Route */}
-                <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem", marginBottom: "1.2rem" }}>
-                  <div style={{ display: "flex", alignItems: "flex-start", gap: "0.5rem" }}>
-                    <MapPin size={16} color="var(--primary)" style={{ marginTop: "3px", flexShrink: 0 }} />
-                    <span style={{ fontSize: "0.88rem", color: "var(--text-muted)" }}>{ride.pickup_coords}</span>
-                  </div>
-                  <div style={{ display: "flex", alignItems: "flex-start", gap: "0.5rem" }}>
-                    <Navigation size={16} color="#4ade80" style={{ marginTop: "3px", flexShrink: 0 }} />
-                    <span style={{ fontSize: "0.88rem", color: "var(--text-muted)" }}>{ride.drop_coords}</span>
+                  <div style={{ background: "rgba(255,255,255,0.03)", padding: "0.6rem", borderRadius: "10px", textAlign: "center" }}>
+                    <p style={{ fontSize: "0.65rem", color: "var(--text-muted)", marginBottom: "0.2rem" }}>{t("fare")}</p>
+                    <p style={{ fontWeight: "700", color: "#4ade80", fontSize: "0.9rem" }}>₹{ride.ride_fare}</p>
                   </div>
                 </div>
 
-                {/* Actions */}
-                <div style={{ display: "flex", gap: "0.75rem" }}>
-                  <button className="btn-primary" style={{ flex: 2 }} onClick={() => acceptRide(ride.id)}>
-                    Accept Ride
+                <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", marginBottom: "1.2rem" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
+                    <div style={{width: 8, height: 8, borderRadius: "50%", background: "var(--primary)"}} />
+                    <span style={{ fontSize: "0.85rem", color: "var(--text-muted)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{ride.pickup_coords}</span>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
+                    <div style={{width: 8, height: 8, borderRadius: "50%", background: "#4ade80"}} />
+                    <span style={{ fontSize: "0.85rem", color: "var(--text-muted)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{ride.drop_coords}</span>
+                  </div>
+                </div>
+
+                <div style={{ display: "flex", gap: "0.6rem" }}>
+                  <button className="btn-primary active-scale" style={{ flex: 1, padding: "0.8rem" }} onClick={() => acceptRide(ride.id)}>
+                    {t("accept")}
                   </button>
                   {ride.pickup_lat && ride.pickup_lng && (
                     <button
-                      className="btn-secondary"
-                      style={{ flex: 1, fontSize: "0.85rem" }}
+                      className="btn-secondary active-scale"
+                      style={{ width: "50px", padding: 0, display: "flex", justifyContent: "center", alignItems: "center" }}
                       onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${ride.pickup_lat},${ride.pickup_lng}`, "_blank")}
                     >
-                      <Navigation2 size={16} />
+                      <Navigation2 size={18} />
                     </button>
                   )}
                 </div>
               </div>
             );
           })}
+        </div>
+      )}
+      </div>
+
+      {/* Persistent Active Ride Indicator */}
+      {activeRide && (
+        <div style={{
+          position: "fixed",
+          bottom: "2rem",
+          left: "1rem",
+          right: "1rem",
+          zIndex: 1000,
+          background: "var(--primary)",
+          color: "black",
+          padding: "1rem",
+          borderRadius: "16px",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          boxShadow: "0 10px 25px rgba(0,0,0,0.5)",
+          cursor: "pointer"
+        }} onClick={() => router.push(`/driver/ride?id=${activeRide.id}`)}>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.8rem" }}>
+            <div style={{ background: "black", borderRadius: "50%", width: "40px", height: "40px", display: "flex", justifyContent: "center", alignItems: "center" }}>
+              <Navigation size={20} color="var(--primary)" />
+            </div>
+            <div>
+              <p style={{ fontSize: "0.8rem", fontWeight: "700", opacity: 0.8 }}>{t("ongoingTrip")}</p>
+              <p style={{ fontWeight: "800" }}>{activeRide.client_name}</p>
+            </div>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: "4px", fontSize: "0.9rem", fontWeight: "800" }}>
+            {t("open")} <Navigation2 size={16} />
+          </div>
         </div>
       )}
     </div>

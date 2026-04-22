@@ -5,8 +5,12 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
 import { CheckCircle, Navigation2, Phone, XCircle, MapPin, Lock, KeyRound } from "lucide-react";
 import ChatBox from "@/components/ChatBox";
+import PageHeader from "@/components/PageHeader";
+import { useTranslations } from "next-intl";
+import { supabase } from "@/lib/supabase";
 
 function DriverRideContent() {
+  const t = useTranslations("Driver");
   const { user, loading } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -34,8 +38,29 @@ function DriverRideContent() {
 
   useEffect(() => {
     fetchStatus();
-    const interval = setInterval(fetchStatus, 4000);
-    return () => clearInterval(interval);
+
+    if (!rideIdQuery) return;
+
+    // Subscribe to ride updates
+    const channel = supabase
+      .channel(`driver-ride-updates-${rideIdQuery}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "RideRequest",
+          filter: `id=eq.${rideIdQuery}`,
+        },
+        () => {
+          fetchStatus();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [rideIdQuery]);
 
   // Broadcast driver GPS to the server every 4 seconds
@@ -82,7 +107,7 @@ function DriverRideContent() {
       fetchStatus();
     } else {
       const data = await res.json();
-      setOtpError(data.error || "Invalid OTP");
+      setOtpError(data.error ? t("invalidOtp") : t("invalidOtp"));
     }
     setVerifying(false);
   };
@@ -117,143 +142,119 @@ function DriverRideContent() {
   const isInProgress = ride.ride_status === "in_progress";
 
   return (
-    <div className="container animate-fade-in" style={{ paddingTop: "2.5rem" }}>
-      <div className="glass-card" style={{ maxWidth: "650px", margin: "0 auto" }}>
-
-        {/* Status Badge */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
-          <h2>Active Ride</h2>
-          <span style={{
-            background: isInProgress ? "rgba(34,197,94,0.15)" : "rgba(250,204,21,0.15)",
-            color: isInProgress ? "#4ade80" : "var(--primary)",
-            padding: "0.3rem 0.8rem",
-            borderRadius: "20px",
-            fontSize: "0.85rem",
-            fontWeight: "700"
-          }}>
-            {isInProgress ? "🚗 Ride Started" : "🔍 Heading to Pickup"}
-          </span>
+    <div className="no-select" style={{ height: "var(--app-height)", display: "flex", flexDirection: "column", padding: 0 }}>
+      <PageHeader 
+        title={t("activeRide")} 
+        backPath="/driver/dashboard" 
+      />
+      
+      {/* Dynamic Status Header - Simplified */}
+      <div style={{ padding: "1.2rem 1rem", background: "rgba(15, 23, 42, 0.4)", borderBottom: "1px solid var(--border)", zIndex: 10, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div>
+           <p style={{ color: isInProgress ? "#4ade80" : "var(--primary)", fontSize: "0.8rem", fontWeight: "700" }}>
+             {isInProgress ? t("tripInProgress") : t("headingToPickup")}
+           </p>
         </div>
+      </div>
 
-        {/* Client Card */}
-        <div style={{ background: "rgba(15,23,42,0.6)", padding: "1.2rem", borderRadius: "12px", marginBottom: "1.5rem" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.75rem" }}>
-            <h3 style={{ fontSize: "1.3rem" }}>{ride.client_name}</h3>
-            <div style={{ display: "flex", gap: "0.4rem" }}>
-              <span style={{ background: "rgba(255,255,255,0.08)", padding: "0.25rem 0.6rem", borderRadius: "6px", fontSize: "0.85rem" }}>{ride.ride_distance}</span>
-              <span style={{ background: "rgba(34,197,94,0.15)", color: "#4ade80", padding: "0.25rem 0.6rem", borderRadius: "6px", fontSize: "0.85rem", fontWeight: "700" }}>{ride.ride_fare}</span>
-            </div>
-          </div>
-          <p style={{ color: "var(--text-muted)", fontSize: "0.9rem", display: "flex", alignItems: "center", gap: "0.4rem" }}>
-            <Phone size={14} /> {ride.client_number}
-          </p>
-        </div>
-
-        {/* Route */}
-        <div style={{ background: "rgba(255,255,255,0.04)", padding: "1rem", borderRadius: "12px", marginBottom: "1.5rem" }}>
-          <div style={{ display: "flex", alignItems: "flex-start", gap: "0.6rem", marginBottom: "0.8rem" }}>
-            <MapPin size={16} color="var(--primary)" style={{ marginTop: "3px", flexShrink: 0 }} />
+      <div style={{ flex: 1, padding: "1rem", display: "flex", flexDirection: "column", gap: "1rem", overflowY: "auto" }}>
+        
+        {/* Client & Route Card */}
+        <div className="glass-card" style={{ padding: "1.2rem" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "1rem" }}>
             <div>
-              <p style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>Pickup</p>
-              <p style={{ fontSize: "0.92rem" }}>{ride.pickup_coords}</p>
-            </div>
-          </div>
-          <div style={{ height: "1px", background: "var(--border)", margin: "0.5rem 0 0.8rem 1.6rem" }} />
-          <div style={{ display: "flex", alignItems: "flex-start", gap: "0.6rem" }}>
-            <Navigation2 size={16} color="#4ade80" style={{ marginTop: "3px", flexShrink: 0 }} />
-            <div>
-              <p style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>Drop</p>
-              <p style={{ fontSize: "0.92rem" }}>{ride.drop_coords}</p>
-            </div>
-          </div>
-        </div>
-
-        {/* ─── PHASE 1: Navigate to Pickup + OTP Entry ─── */}
-        {isAccepted && (
-          <>
-            {ride.pickup_lat && ride.pickup_lng && (
-              <button
-                className="btn-primary"
-                style={{ width: "100%", marginBottom: "1rem" }}
-                onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${ride.pickup_lat},${ride.pickup_lng}`, "_blank")}
-              >
-                <Navigation2 size={18} /> Navigate to Pickup
-              </button>
-            )}
-
-            <div style={{ background: "rgba(250,204,21,0.05)", border: "1px solid rgba(250,204,21,0.2)", padding: "1.2rem", borderRadius: "12px", marginBottom: "1rem" }}>
-              <p style={{ fontSize: "0.85rem", color: "var(--text-muted)", marginBottom: "0.8rem", display: "flex", alignItems: "center", gap: "0.4rem" }}>
-                <Lock size={14} /> Enter the OTP from the passenger to start the ride
+              <h3 style={{ fontSize: "1.3rem", fontWeight: "800" }}>{ride.client_name}</h3>
+              <p style={{ color: "var(--text-muted)", fontSize: "0.9rem", display: "flex", alignItems: "center", gap: "4px" }}>
+                <Phone size={14} /> {ride.client_number}
               </p>
-              <div style={{ display: "flex", gap: "0.75rem" }}>
-                <input
-                  type="text"
-                  className="input-field"
-                  maxLength={4}
-                  placeholder="_ _ _ _"
-                  value={otpInput}
-                  onChange={(e) => setOtpInput(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                  style={{ textAlign: "center", letterSpacing: "0.3rem", fontSize: "1.4rem", fontWeight: "700", marginBottom: 0, flex: 1 }}
-                />
-                <button
-                  className="btn-primary"
-                  onClick={verifyOtp}
-                  disabled={verifying || otpInput.length < 4}
-                  style={{ padding: "0 1.2rem" }}
-                >
-                  {verifying ? <div className="spinner" /> : <KeyRound size={20} />}
-                </button>
-              </div>
-              {otpError && <p style={{ color: "#f87171", fontSize: "0.85rem", marginTop: "0.5rem" }}>❌ {otpError}</p>}
             </div>
-          </>
+            <div style={{ textAlign: "right" }}>
+              <p style={{ fontWeight: "800", color: "#4ade80", fontSize: "1.1rem" }}>{ride.ride_fare}</p>
+              <p style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>{ride.ride_distance}</p>
+            </div>
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: "0.8rem", padding: "1rem", background: "rgba(255,255,255,0.02)", borderRadius: "12px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.8rem" }}>
+              <div style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--primary)" }} />
+              <p style={{ fontSize: "0.85rem", flex: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{ride.pickup_coords}</p>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.8rem" }}>
+              <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#4ade80" }} />
+              <p style={{ fontSize: "0.85rem", flex: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{ride.drop_coords}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Phase Actions */}
+        {isAccepted && (
+          <div style={{ display: "flex", flexDirection: "column", gap: "0.8rem" }}>
+            <button
+               className="btn-primary active-scale"
+               style={{ padding: "1.2rem", display: "flex", justifyContent: "center", alignItems: "center", gap: "0.5rem" }}
+               onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${ride.pickup_lat},${ride.pickup_lng}`, "_blank")}
+            >
+              <Navigation2 size={20} /> {t("startNavigation")}
+            </button>
+
+            <div className="glass-card" style={{ padding: "1.2rem", border: "1px dashed var(--primary)" }}>
+                <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginBottom: "0.8rem", textAlign: "center" }}>{t("enterClientOtp")}</p>
+                <div style={{ display: "flex", gap: "0.6rem" }}>
+                  <input
+                    type="text"
+                    className="input-field"
+                    maxLength={4}
+                    placeholder="____"
+                    value={otpInput}
+                    onChange={(e) => setOtpInput(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                    style={{ textAlign: "center", fontSize: "1.5rem", letterSpacing: "0.5rem", fontWeight: "800", marginBottom: 0, flex: 1, background: "rgba(0,0,0,0.3)" }}
+                  />
+                  <button onClick={verifyOtp} disabled={verifying || otpInput.length < 4} style={{ width: "60px", background: "var(--primary)", border: "none", borderRadius: "12px", color: "black", display: "flex", justifyContent: "center", alignItems: "center" }}>
+                    {verifying ? <div className="spinner" style={{ borderColor: "black", borderTopColor: "transparent" }} /> : <KeyRound size={24} />}
+                  </button>
+                </div>
+                {otpError && <p style={{ color: "#f87171", fontSize: "0.8rem", marginTop: "0.5rem", textAlign: "center" }}>{otpError}</p>}
+            </div>
+          </div>
         )}
 
-        {/* ─── PHASE 2: Ride In Progress ─── */}
         {isInProgress && (
-          <>
-            <div style={{ background: "rgba(34,197,94,0.08)", border: "1px solid rgba(34,197,94,0.2)", padding: "0.8rem 1rem", borderRadius: "12px", marginBottom: "1rem", display: "flex", alignItems: "center", gap: "0.6rem" }}>
-              <CheckCircle size={18} color="#4ade80" />
-              <p style={{ fontSize: "0.9rem", color: "#4ade80" }}>OTP Verified — Ride started! Head to the Drop location.</p>
-            </div>
-
-            {ride.drop_lat && ride.drop_lng && (
-              <button
-                className="btn-primary"
-                style={{ width: "100%", marginBottom: "1rem" }}
-                onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${ride.drop_lat},${ride.drop_lng}`, "_blank")}
-              >
-                <Navigation2 size={18} /> Navigate to Drop Location
-              </button>
-            )}
-
+          <div style={{ display: "flex", flexDirection: "column", gap: "0.8rem" }}>
+            <button
+               className="btn-primary active-scale"
+               style={{ padding: "1.2rem", background: "rgba(255,255,255,0.05)", border: "1px solid var(--border)" }}
+               onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${ride.drop_lat},${ride.drop_lng}`, "_blank")}
+            >
+              {t("navigateToDrop")}
+            </button>
             <button
               onClick={completeRide}
-              className="btn-primary"
-              style={{ width: "100%", background: "#4ade80", color: "#000", marginBottom: "0.75rem", fontWeight: "700" }}
+              className="btn-primary active-scale"
+              style={{ padding: "1.5rem", background: "#4ade80", color: "black", fontWeight: "800", fontSize: "1.1rem" }}
             >
-              <CheckCircle size={20} /> Mark Ride as Complete
+              {t("completeTrip")}
             </button>
-          </>
+          </div>
         )}
 
-        {/* Chat Component */}
-        <ChatBox 
-          rideId={ride.id} 
-          currentUser={user.username} 
-          otherUser={ride.client_name} 
-          otherNumber={ride.client_number} 
-        />
-
-        {/* Cancel always available */}
-        <button
-          onClick={cancelRide}
-          className="btn-secondary"
-          style={{ width: "100%", color: "#f87171", borderColor: "rgba(248,113,113,0.3)" }}
-        >
-          <XCircle size={18} style={{ marginRight: "6px" }} /> Cancel Ride
-        </button>
       </div>
+
+      {/* Chat Box Integration - Moved outside for fixed positioning */}
+      <ChatBox 
+        rideId={ride.id} 
+        currentUser={user.username} 
+        otherUser={ride.client_name} 
+        otherNumber={ride.client_number} 
+      />
+
+      <button
+        onClick={cancelRide}
+        style={{ width: "100%", background: "none", border: "none", color: "#f87171", padding: "1rem", fontSize: "0.85rem", fontWeight: "600", opacity: 0.8 }}
+      >
+        {t("cancelRide")}
+      </button>
+
+
     </div>
   );
 }

@@ -1,0 +1,90 @@
+{
+  "Common": {
+    "appName": "PickMeUp",
+    "back": "पीछे",
+    "save": "सहेजें",
+    "cancel": "रद्द करें",
+    "loading": "लोड हो रहा है...",
+    "logout": "लॉगआउट",
+    "phone": "फ़ोन नंबर",
+    "username": "यूज़रनेम",
+    "password": "पासवर्ड"
+  },
+  "Landing": {
+    "title": "आपकी सवारी, बस एक टैप दूर",
+    "subtitle": "आपके दैनिक आवागमन के लिए सुरक्षित, तेज़ और विश्वसनीय सवारी। आज ही शामिल हों।",
+    "passenger": "यात्री",
+    "passengerDesc": "सवारी बुक करें और सुरक्षित घर पहुँचें",
+    "captain": "कैप्टन",
+    "captainDesc": "PickMeUp के साथ ड्राइव करें और कमाएं",
+    "hi": "नमस्ते {name}!",
+    "loggedInAs": "लॉग इन हैं",
+    "bookRide": "सवारी बुक करें",
+    "viewDrivers": "ड्राइवर देखें",
+    "viewRequests": "अनुरोध देखें",
+    "editProfile": "प्रोफ़ाइल बदलें",
+    "logout": "लॉगआउट",
+    "pickup": "पिकअप",
+    "flatFare": "किफायती किराया",
+    "secure": "सुरक्षित"
+  },
+  "Register": {
+    "welcomeBack": "स्वागत है",
+    "newAccount": "नया अकाउंट",
+    "joinAs": "शामिल हों",
+    "needAccount": "अकाउंट चाहिए?",
+    "haveAccount": "अकाउंट है?",
+    "register": "रजिस्टर करें",
+    "login": "लॉगिन"
+  },
+  "User": {
+    "whereTo": "आज हम कहाँ जा रहे हैं?",
+    "pickup": "वर्तमान स्थान",
+    "drop": "गंतव्य दर्ज करें",
+    "request": "सवारी का अनुरोध करें",
+    "searching": "कैप्टन की तलाश है...",
+    "captainComing": "कैप्टन आ रहा है!",
+    "onWay": "आप रास्ते में हैं",
+    "summary": "सवारी का सारांश",
+    "waitingGPS": "कैप्टन के जीपीएस का इंतज़ार है...",
+    "findingBest": "सबसे अच्छे कैप्टन की तलाश है...",
+    "scheduled": "सवारी शेड्यूल की गई",
+    "scheduledDesc": "उनकी वर्तमान यात्रा पूरी होने के बाद आपकी सवारी अपने आप शुरू हो जाएगी।",
+    "captainBusy": "कैप्टन दूसरी यात्रा पर है"
+  },
+  "Driver": {
+    "dashboard": "कैप्टन डैशबोर्ड",
+    "activeLocation": "सक्रिय स्थान",
+    "enableGPS": "दूरी के लिए जीपीएस ऑन करें",
+    "noRides": "खोज रहे हैं...",
+    "waitingPassengers": "आपके क्षेत्र में यात्रियों का इंतज़ार है।",
+    "toPickup": "पिकअप के लिए",
+    "trip": "यात्रा",
+    "fare": "किराया",
+    "accept": "स्वीकार करें",
+    "ongoingTrip": "जारी यात्रा",
+    "open": "खोलें",
+    "activeRide": "सक्रिय सवारी",
+    "tripInProgress": "यात्रा जारी है",
+    "headingToPickup": "पिकअप के लिए",
+    "startNavigation": "नेविगेशन शुरू करें",
+    "enterClientOtp": "यात्रा शुरू करने के लिए ओटीपी दर्ज करें",
+    "invalidOtp": "अमान्य ओटीपी",
+    "completeTrip": "यात्रा पूरी करें",
+    "cancelRide": "सवारी रद्द करें",
+    "navigateToDrop": "ड्रॉप पर नेविगेट करें"
+  },
+  "Profile": {
+    "title": "कैप्टन प्रोफाइल",
+    "verified": "सत्यापित",
+    "captains": "कैप्टन",
+    "available": "आस-पास उपलब्ध",
+    "ridesCompleted": "पूरी की गई सवारी"
+  },
+  "Language": {
+    "select": "भाषा बदलें",
+    "english": "English",
+    "malayalam": "മലയാളം",
+    "hindi": "हिन्दी"
+  }
+}

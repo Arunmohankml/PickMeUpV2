@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { MessageSquare, Send, Phone, X, User } from "lucide-react";
+import { supabase } from "@/lib/supabase";
 
 interface Message {
   id: number;
@@ -37,11 +38,30 @@ export default function ChatBox({ rideId, currentUser, otherUser, otherNumber }:
   };
 
   useEffect(() => {
-    if (isOpen) {
-      fetchMessages();
-      const interval = setInterval(fetchMessages, 3000);
-      return () => clearInterval(interval);
-    }
+    if (!isOpen) return;
+
+    fetchMessages();
+
+    // Subscribe to new messages for this ride
+    const channel = supabase
+      .channel(`ride-chat-${rideId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "ChatMessage",
+          filter: `ride_id=eq.${rideId}`,
+        },
+        (payload) => {
+          setMessages((prev) => [...prev, payload.new as Message]);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [isOpen, rideId]);
 
   useEffect(() => {
@@ -98,24 +118,21 @@ export default function ChatBox({ rideId, currentUser, otherUser, otherNumber }:
         <MessageSquare size={24} />
       </button>
 
-      {/* Chat Window */}
+      {/* Chat Window (App Fullscreen) */}
       {isOpen && (
         <div style={{
           position: "fixed",
-          bottom: "20px",
-          right: "20px",
-          width: "350px",
-          height: "500px",
-          background: "rgba(15, 23, 42, 0.95)",
-          backdropFilter: "blur(20px)",
-          borderRadius: "20px",
-          border: "1px solid rgba(255, 255, 255, 0.1)",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: "var(--bg-dark)",
+          zIndex: 9999,
           display: "flex",
           flexDirection: "column",
-          zIndex: 1001,
-          boxShadow: "0 20px 50px rgba(0,0,0,0.6)",
-          overflow: "hidden",
-          animation: "slideUp 0.3s ease-out"
+          paddingTop: "var(--safe-top)",
+          paddingBottom: "var(--safe-bottom)",
+          animation: "slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1)"
         }}>
           {/* Header */}
           <div style={{
@@ -219,15 +236,17 @@ export default function ChatBox({ rideId, currentUser, otherUser, otherNumber }:
             ))}
           </div>
 
-          {/* Input */}
+          {/* Input Area */}
           <form 
             onSubmit={sendMessage}
             style={{
               padding: "1rem",
-              background: "rgba(255, 255, 255, 0.03)",
+              paddingBottom: "calc(1rem + var(--safe-bottom))",
+              background: "rgba(15, 23, 42, 0.95)",
               borderTop: "1px solid rgba(255, 255, 255, 0.1)",
               display: "flex",
-              gap: "0.5rem"
+              gap: "0.5rem",
+              backdropFilter: "blur(20px)"
             }}
           >
             <input 
@@ -239,28 +258,31 @@ export default function ChatBox({ rideId, currentUser, otherUser, otherNumber }:
                 flex: 1,
                 background: "rgba(255, 255, 255, 0.05)",
                 border: "1px solid rgba(255, 255, 255, 0.1)",
-                borderRadius: "10px",
-                padding: "0.6rem 1rem",
+                borderRadius: "12px",
+                padding: "0.8rem 1rem",
                 color: "#fff",
-                outline: "none"
+                outline: "none",
+                fontSize: "1rem"
               }}
             />
             <button 
               type="submit"
               disabled={loading}
+              className="active-scale"
               style={{
-                width: "40px",
-                height: "40px",
-                borderRadius: "10px",
+                width: "48px",
+                height: "48px",
+                borderRadius: "12px",
                 background: "var(--primary)",
                 border: "none",
                 display: "flex",
                 justifyContent: "center",
                 alignItems: "center",
-                cursor: "pointer"
+                cursor: "pointer",
+                color: "#000"
               }}
             >
-              <Send size={18} />
+              <Send size={20} />
             </button>
           </form>
         </div>
@@ -268,8 +290,8 @@ export default function ChatBox({ rideId, currentUser, otherUser, otherNumber }:
 
       <style jsx>{`
         @keyframes slideUp {
-          from { transform: translateY(20px); opacity: 0; }
-          to { transform: translateY(0); opacity: 1; }
+          from { transform: translateY(100%); }
+          to { transform: translateY(0); }
         }
       `}</style>
     </>

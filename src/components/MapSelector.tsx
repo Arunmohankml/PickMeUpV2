@@ -6,7 +6,7 @@ import "leaflet/dist/leaflet.css";
 import "leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.css";
 import "leaflet-defaulticon-compatibility";
 import { OpenStreetMapProvider } from "leaflet-geosearch";
-import { Search } from "lucide-react";
+import { Search, Navigation } from "lucide-react";
 
 interface MapSelectorProps {
   onSelect: (address: string, coords: [number, number]) => void;
@@ -77,74 +77,101 @@ const MapSelector: React.FC<MapSelectorProps> = ({ onSelect, onClose, initialCen
       position: "fixed",
       top: 0,
       left: 0,
+      right: 0,
+      bottom: 0,
       width: "100%",
-      height: "100%",
-      zIndex: 1000,
+      height: "var(--app-height)",
+      zIndex: 2000,
       display: "flex",
-      justifyContent: "center",
-      alignItems: "center",
-      background: "rgba(0,0,0,0.8)",
-      backdropFilter: "blur(4px)"
-    }}>
-      <div className="glass-card" style={{
-        width: "90%",
-        maxWidth: "800px",
-        height: "80%",
-        display: "flex",
-        flexDirection: "column",
-        padding: "1.5rem",
-        position: "relative",
-        gap: "1rem"
+      flexDirection: "column",
+      background: "var(--bg-dark)",
+      paddingTop: "var(--safe-top)",
+      paddingBottom: "var(--safe-bottom)",
+    }} className="animate-fade-in no-select">
+      
+      {/* Header with Search */}
+      <div style={{ 
+        padding: "1rem", 
+        background: "rgba(15, 23, 42, 0.8)", 
+        backdropFilter: "blur(10px)",
+        borderBottom: "1px solid var(--border)",
+        zIndex: 2010
       }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <h3>Select Location</h3>
-          <button className="btn-secondary" onClick={onClose} style={{ padding: "0.5rem" }}>X Close</button>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
+          <h3 style={{ fontSize: "1.1rem" }}>Place Pin</h3>
+          <button onClick={onClose} style={{ background: "none", border: "none", color: "var(--text-muted)", fontSize: "0.9rem", fontWeight: "600" }}>Cancel</button>
         </div>
 
         <form onSubmit={handleSearch} style={{ display: "flex", gap: "0.5rem" }}>
-          <input 
-            type="text" 
-            className="input-field" 
-            placeholder="Search for a location..." 
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            style={{ marginBottom: 0 }}
-          />
-          <button type="submit" className="btn-primary" disabled={isSearching} style={{ padding: "0.8rem" }}>
-            {isSearching ? <div className="spinner" /> : <Search size={20} />}
+          <div style={{ flex: 1, position: "relative" }}>
+            <input 
+              type="text" 
+              className="input-field" 
+              placeholder="Search for a location..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              style={{ marginBottom: 0, paddingLeft: "2.5rem" }}
+            />
+            <Search size={18} style={{ position: "absolute", left: "0.8rem", top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)" }} />
+          </div>
+          <button type="submit" className="btn-primary" disabled={isSearching} style={{ width: "auto", padding: "0 1rem" }}>
+            {isSearching ? <div className="spinner" /> : "Find"}
           </button>
         </form>
+      </div>
 
-        <div style={{ flex: 1, borderRadius: "12px", overflow: "hidden", position: "relative", border: "1px solid var(--border)" }}>
-          <MapContainer center={initialCenter} zoom={13} style={{ height: "100%", width: "100%" }}>
-            <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            />
-            <LocationMarker />
-          </MapContainer>
-          <div style={{
-            position: "absolute",
-            bottom: "1rem",
-            left: "1rem",
-            right: "1rem",
-            background: "rgba(15, 23, 42, 0.9)",
-            padding: "0.8rem",
-            borderRadius: "8px",
-            fontSize: "0.9rem",
-            zIndex: 1000,
-            border: "1px solid var(--border)"
-          }}>
-            <p><strong>Selected:</strong> {address || "Loading..."}</p>
-          </div>
+      {/* Map Area */}
+      <div style={{ flex: 1, position: "relative" }}>
+        <MapContainer center={initialCenter} zoom={13} style={{ height: "100%", width: "100%" }} zoomControl={false}>
+          <TileLayer
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          />
+          <LocationMarker />
+        </MapContainer>
+        
+        {/* Floating Controls Placeholder (like Current Location button) */}
+        <div style={{
+          position: "absolute",
+          top: "1rem",
+          right: "1rem",
+          zIndex: 1000,
+          background: "rgba(15, 23, 42, 0.8)",
+          padding: "0.8rem",
+          borderRadius: "12px",
+          border: "1px solid var(--border)",
+          backdropFilter: "blur(4px)"
+        }} onClick={() => {
+          if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition((pos) => {
+              setPosition([pos.coords.latitude, pos.coords.longitude]);
+            });
+          }
+        }}>
+          <Navigation size={20} color="var(--primary)" />
         </div>
+      </div>
 
+      {/* Footer Confirm */}
+      <div style={{ 
+        padding: "1.5rem", 
+        background: "rgba(15, 23, 42, 0.9)", 
+        backdropFilter: "blur(12px)",
+        borderTop: "1px solid var(--border)",
+        zIndex: 2010
+      }}>
+        <div style={{ marginBottom: "1rem" }}>
+          <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginBottom: "0.2rem" }}>PICKED LOCATION</p>
+          <p style={{ fontSize: "0.9rem", fontWeight: "500", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+            {address || "Locating..."}
+          </p>
+        </div>
         <button 
-          className="btn-primary" 
+          className="btn-primary active-scale" 
           onClick={() => onSelect(address, position)}
-          style={{ width: "100%" }}
+          style={{ width: "100%", padding: "1.2rem" }}
         >
-          Confirm Location
+          Confirm Pin Location
         </button>
       </div>
     </div>

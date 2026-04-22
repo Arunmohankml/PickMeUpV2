@@ -8,6 +8,7 @@ declare global {
   var prismaGlobal: undefined | ReturnType<typeof prismaClientSingleton>
 }
 
+console.log("Prisma connecting to:", process.env.DATABASE_URL?.split('@')[1] || "No URL");
 const prisma = globalThis.prismaGlobal ?? prismaClientSingleton()
 
 export default prisma

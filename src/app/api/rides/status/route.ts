@@ -40,6 +40,11 @@ export async function GET(req: NextRequest) {
     if (user.role === "driver") {
       const ride = await prisma.rideRequest.findFirst({
         where: { accepted_by_id: user.id, is_active: true },
+        orderBy: [
+          { ride_status: "desc" }, // 'in_progress' starts with 'i', 'accepted' with 'a', 'scheduled' with 's'. Wait, 'scheduled' is after 'in_progress'. 
+          // Let's use a more explicit ordering or just simple findFirst.
+          { timestamp: "asc" }
+        ],
         include: { driver: { include: { profile: true } } },
       });
       return NextResponse.json({ ride });

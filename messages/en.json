@@ -1,0 +1,90 @@
+{
+  "Common": {
+    "appName": "PickMeUp",
+    "back": "Back",
+    "save": "Save",
+    "cancel": "Cancel",
+    "loading": "Loading...",
+    "logout": "Logout",
+    "phone": "Phone Number",
+    "username": "Username",
+    "password": "Password"
+  },
+  "Landing": {
+    "title": "Your Ride, Just a Tap Away",
+    "subtitle": "Safe, fast, and reliable rides for your daily commute. Join the community today.",
+    "passenger": "Passenger",
+    "passengerDesc": "Book a ride and get home safely",
+    "captain": "Captain",
+    "captainDesc": "Drive and earn with PickMeUp",
+    "hi": "Hi {name}!",
+    "loggedInAs": "Logged in as",
+    "bookRide": "Book a Ride",
+    "viewDrivers": "View Drivers",
+    "viewRequests": "View Requests",
+    "editProfile": "Edit Profile",
+    "logout": "Logout",
+    "pickup": "Pickup",
+    "flatFare": "Flat Fare",
+    "secure": "Secure"
+  },
+  "Register": {
+    "welcomeBack": "Welcome Back",
+    "newAccount": "New Account",
+    "joinAs": "Join as a",
+    "needAccount": "Need an account?",
+    "haveAccount": "Have an account?",
+    "register": "Register",
+    "login": "Login"
+  },
+  "User": {
+    "whereTo": "Where are we going today?",
+    "pickup": "Current Location",
+    "drop": "Enter Destination",
+    "request": "Request PickMeUp",
+    "searching": "Looking for Captain...",
+    "captainComing": "Captain is coming!",
+    "onWay": "You are on your way",
+    "summary": "Ride Summary",
+    "waitingGPS": "Waiting for Captain GPS...",
+    "findingBest": "Finding best Captain...",
+    "scheduled": "Ride Scheduled",
+    "scheduledDesc": "Your ride will start automatically after their current drop-off.",
+    "captainBusy": "Captain is on another trip"
+  },
+  "Driver": {
+    "dashboard": "Captain Dashboard",
+    "activeLocation": "Active Location",
+    "enableGPS": "Enable GPS for distance",
+    "noRides": "Searching...",
+    "waitingPassengers": "Waiting for passengers in your area.",
+    "toPickup": "To Pickup",
+    "trip": "Trip",
+    "fare": "Fare",
+    "accept": "Accept Ride",
+    "ongoingTrip": "Ongoing Trip",
+    "open": "Open",
+    "activeRide": "Active Ride",
+    "tripInProgress": "TRIP IN PROGRESS",
+    "headingToPickup": "HEADING TO PICKUP",
+    "startNavigation": "Start Navigation",
+    "enterClientOtp": "Enter Client OTP to Start Trip",
+    "invalidOtp": "Invalid OTP",
+    "completeTrip": "COMPLETE TRIP",
+    "cancelRide": "Cancel Ride",
+    "navigateToDrop": "Navigate to Drop"
+  },
+  "Profile": {
+    "title": "Captain Profile",
+    "verified": "VERIFIED",
+    "captains": "Captains",
+    "available": "Available nearby",
+    "ridesCompleted": "Rides Completed"
+  },
+  "Language": {
+    "select": "Change Language",
+    "english": "English",
+    "malayalam": "മലയാളം",
+    "hindi": "हिन्दी"
+  }
+}

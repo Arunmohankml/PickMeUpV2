@@ -10,6 +10,9 @@
   --border: rgba(255, 255, 255, 0.1);
   --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
   --glass-backdrop: blur(12px);
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --app-height: 100dvh;
 }
 
 * {
@@ -22,13 +25,29 @@ body {
   font-family: 'Outfit', sans-serif;
   background-color: var(--bg-dark);
   color: var(--text-light);
-  min-height: 100vh;
+  min-height: var(--app-height);
   display: flex;
   flex-direction: column;
   background-image: 
     radial-gradient(circle at 15% 50%, rgba(250, 204, 21, 0.15), transparent 25%),
     radial-gradient(circle at 85% 30%, rgba(56, 189, 248, 0.1), transparent 25%);
   background-attachment: fixed;
+  overflow-x: hidden;
+  -webkit-tap-highlight-color: transparent;
+  padding-top: var(--safe-top);
+  padding-bottom: var(--safe-bottom);
+}
+
+/* Allow natural scrolling on all devices */
+html {
+  min-height: 100%;
+}
+
+body {
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* Glassmorphism Card Utility */
@@ -167,7 +186,7 @@ h1 {
 .container {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 2rem;
+  padding: 1.5rem;
   width: 100%;
 }
 
@@ -175,4 +194,49 @@ h1 {
   flex: 1;
   display: flex;
   flex-direction: column;
+  position: relative;
+}
+
+/* Mobile-first enhancements */
+@media (max-width: 768px) {
+  .container {
+    padding: 1rem;
+  }
+  
+  h1 {
+    font-size: 2.2rem;
+  }
+
+  .glass-card {
+    padding: 1.5rem;
+  }
+
+  .btn-primary, .btn-secondary {
+    width: 100%;
+    padding: 1rem;
+  }
+}
+
+/* Scrollbar styling for native-like feel */
+::-webkit-scrollbar {
+  width: 0px;
+}
+
+.no-select {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.active-scale:active {
+  transform: scale(0.97);
+}
+
+.full-screen-center {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: calc(var(--app-height) - var(--safe-top) - var(--safe-bottom));
+  padding: 2rem;
+  text-align: center;
 }
