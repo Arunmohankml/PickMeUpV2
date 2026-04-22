@@ -24,6 +24,7 @@ export const metadata: Metadata = {
 import { getMessages } from "next-intl/server";
 import { NextIntlClientProvider } from "next-intl";
 import { cookies } from "next/headers";
+import InstallPrompt from "@/components/InstallPrompt";
 
 export default async function RootLayout({
   children,
@@ -42,6 +43,7 @@ export default async function RootLayout({
             <main className="main-content">
               {children}
             </main>
+            <InstallPrompt />
           </AuthProvider>
         </NextIntlClientProvider>
       </body>
